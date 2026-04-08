@@ -24,16 +24,12 @@ function initData() {
   ];
   App.categories = JSON.parse(localStorage.getItem('db_categories')) || [
     {id: 'c1', name: '食費', type: 'expense'},
-    {id: 'c2', name: '日用品', type: 'expense'},
-    {id: 'c3', name: '交際費', type: 'expense'},
-    {id: 'c4', name: '給料', type: 'income'},
-    {id: 'c5', name: 'お小遣い', type: 'income'}
+    {id: 'c2', name: '給料', type: 'income'}
   ];
   App.transactions = JSON.parse(localStorage.getItem('db_transactions')) || [];
 }
 
 function setupEvents() {
-  // ナビゲーション
   $$('.nav-item').forEach(btn => {
     btn.onclick = () => showPage(btn.dataset.page);
   });
@@ -41,7 +37,6 @@ function setupEvents() {
     btn.onclick = () => showPage(btn.dataset.back);
   });
 
-  // 収支タイプ切り替え
   $$('.type-tab').forEach(tab => {
     tab.onclick = () => {
       $$('.type-tab').forEach(t => t.classList.remove('active'));
@@ -53,13 +48,9 @@ function setupEvents() {
     };
   });
 
-  // 保存処理
   $('#btn-save-transaction').onclick = () => {
     const amount = parseInt($('#input-amount').value);
-    if (!amount) {
-      alert('金額を入力してください');
-      return;
-    }
+    if (!amount) return;
     const tx = {
       id: Date.now().toString(),
       amount: amount,
@@ -76,7 +67,6 @@ function setupEvents() {
     showPage('dashboard');
   };
 
-  // バックアップ
   $('#btn-backup').onclick = () => $('#modal-backup').classList.remove('hidden');
   $('.modal-close').onclick = () => $('#modal-backup').classList.add('hidden');
 }
@@ -87,29 +77,23 @@ function showPage(id) {
   $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === id));
   if (id === 'dashboard') renderDashboard();
   if (id === 'input') resetForm();
-  if (id === 'report') renderReport();
 }
 
 function renderDashboard() {
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const thisMonthTxs = App.transactions.filter(t => t.date.startsWith(currentMonth));
-  
-  const income = thisMonthTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expense = thisMonthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-
-  $('#summary-income').textContent = '¥' + income.toLocaleString();
-  $('#summary-expense').textContent = '¥' + expense.toLocaleString();
-  $('#summary-balance').textContent = '¥' + (income - expense).toLocaleString();
+  $('#summary-income').textContent = '¥' + calculateTotal('income').toLocaleString();
+  $('#summary-expense').textContent = '¥' + calculateTotal('expense').toLocaleString();
   
   $('#account-list-dashboard').innerHTML = App.accounts.map(a => `
-    <div style="display:flex; justify-content:space-between; padding:5px 0;">
-      <span>${a.name}</span><span>¥${calculateBal(a.id).toLocaleString()}</span>
-    </div>
+    <div>${a.name}: ¥${calculateBal(a.id).toLocaleString()}</div>
   `).join('');
 
   $('#recent-transactions').innerHTML = App.transactions.slice(-5).reverse().map(t => `
-    <div style="font-size:13px; margin-bottom:5px;">${t.date} ${t.memo || ''} ¥${t.amount.toLocaleString()}</div>
+    <div>${t.date} ${t.amount.toLocaleString()}</div>
   `).join('');
+}
+
+function calculateTotal(type) {
+  return App.transactions.filter(t => t.type === type).reduce((s, t) => s + t.amount, 0);
 }
 
 function calculateBal(id) {
@@ -125,9 +109,6 @@ function calculateBal(id) {
 }
 
 function resetForm() {
-  $('#input-amount').value = '';
-  $('#input-memo').value = '';
-  $('#input-date').value = new Date().toISOString().split('T')[0];
   const opts = App.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
   $('#input-account').innerHTML = opts;
   $('#input-to-account').innerHTML = opts;
@@ -148,23 +129,4 @@ function showToast(m) {
   t.textContent = m;
   t.style.display = 'block';
   setTimeout(() => t.style.display = 'none', 2000);
-}
-
-function renderReport() {
-  const ctx = $('#monthly-bar-chart').getContext('2d');
-  // 簡易的なグラフ表示（詳細はデータに合わせて拡張可能）
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['支出', '収入'],
-      datasets: [{
-        data: [
-          App.transactions.filter(t => t.type === 'expense').reduce((s,t) => s+t.amount, 0),
-          App.transactions.filter(t => t.type === 'income').reduce((s,t) => s+t.amount, 0)
-        ],
-        backgroundColor: ['#dc3545', '#28a745']
-      }]
-    },
-    options: { plugins: { legend: { display: false } } }
-  });
 }
