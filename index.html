@@ -20,11 +20,10 @@
     <div class="safe-area-top"></div>
 
     <main id="page-container">
-      
       <section id="page-dashboard" class="page active">
         <header class="app-header">
           <div class="header-left">
-            <span id="display-month" class="header-month">2024年3月</span>
+            <span id="display-month" class="header-month">2026年4月</span>
           </div>
           <div class="header-right">
             <button id="btn-open-backup" class="icon-btn"><i class="fa-solid fa-cloud"></i></button>
@@ -51,7 +50,6 @@
               </div>
             </div>
           </div>
-
           <div class="section-title">口座残高</div>
           <div id="account-list-dashboard" class="account-grid"></div>
         </div>
@@ -60,57 +58,29 @@
       <section id="page-input" class="page">
         <header class="app-header">
           <button class="back-btn" data-back="dashboard"><i class="fa-solid fa-chevron-left"></i></button>
-          <h1 id="input-page-title">収支入力</h1>
+          <h1>収支入力</h1>
           <button id="btn-save-transaction" class="save-btn">保存</button>
         </header>
         <div class="scroll-content">
-          <div class="type-selector-container">
-            <div class="type-selector">
-              <button class="type-tab" data-type="income">収入</button>
-              <button class="type-tab active" data-type="expense">支出</button>
-              <button class="type-tab" data-type="transfer">移動</button>
-            </div>
+          <div class="type-selector">
+            <button class="type-tab" data-type="income">収入</button>
+            <button class="type-tab active" data-type="expense">支出</button>
+            <button class="type-tab" data-type="transfer">移動</button>
           </div>
-          <div class="input-form">
-            <div class="amount-input-group">
-              <span class="currency-unit">¥</span>
-              <input type="number" id="input-amount" placeholder="0" inputmode="numeric">
-            </div>
-            <div class="form-list">
-              <div class="form-item">
-                <label>カテゴリー</label>
-                <div id="category-picker" class="category-grid"></div>
-              </div>
-              <div class="form-item">
-                <label id="label-account">口座</label>
-                <select id="input-account"></select>
-              </div>
-              <div class="form-item">
-                <label>日付</label>
-                <input type="date" id="input-date">
-              </div>
-              <div class="form-item">
-                <label>メモ</label>
-                <input type="text" id="input-memo" placeholder="未入力">
-              </div>
-            </div>
+          <div class="form-list">
+            <input type="number" id="input-amount" placeholder="0" inputmode="numeric">
+            <select id="input-account"></select>
+            <input type="date" id="input-date">
+            <input type="text" id="input-memo" placeholder="メモ">
           </div>
         </div>
       </section>
     </main>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" data-page="dashboard">
-        <i class="fa-solid fa-house"></i>
-        <span>ホーム</span>
-      </button>
-      <button class="nav-plus" data-page="input">
-        <div class="plus-icon"><i class="fa-solid fa-plus"></i></div>
-      </button>
-      <button class="nav-item" data-page="analysis">
-        <i class="fa-solid fa-chart-pie"></i>
-        <span>分析</span>
-      </button>
+      <button class="nav-item active" data-page="dashboard"><i class="fa-solid fa-house"></i><span>ホーム</span></button>
+      <button class="nav-plus" data-page="input"><div class="plus-icon"><i class="fa-solid fa-plus"></i></div></button>
+      <button class="nav-item" data-page="analysis"><i class="fa-solid fa-chart-pie"></i><span>分析</span></button>
     </nav>
   </div>
 
