@@ -1,90 +1,63 @@
 'use strict';
 
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => [...document.querySelectorAll(sel)];
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
 
 const App = {
   state: {
-    currentMonth: new Date(),
     transactions: JSON.parse(localStorage.getItem('kakeibo_tx')) || [],
-    accounts: JSON.parse(localStorage.getItem('kakeibo_accounts')) || [
-      {id: '1', name: '現金', balance: 0},
-      {id: '2', name: '銀行', balance: 0}
-    ],
-    selectedType: 'expense'
+    type: 'expense'
   },
 
   init() {
-    this.setupEventListeners();
+    this.bindEvents();
     this.render();
   },
 
-  setupEventListeners() {
-    $$('.nav-item, .nav-plus').forEach(btn => {
-      btn.onclick = () => this.showPage(btn.dataset.page);
-    });
-
-    $$('.back-btn').forEach(btn => {
-      btn.onclick = () => this.showPage(btn.dataset.back);
+  bindEvents() {
+    $$('.nav-item, .nav-plus').forEach(el => {
+      el.onclick = () => this.showPage(el.dataset.page);
     });
 
     $$('.type-tab').forEach(tab => {
       tab.onclick = () => {
         $$('.type-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        this.state.selectedType = tab.dataset.type;
-        this.updateFormUI();
+        this.state.type = tab.dataset.type;
       };
     });
 
-    $('#btn-save-transaction').onclick = () => this.saveTransaction();
+    $('#btn-save-transaction').onclick = () => this.save();
   },
 
-  showPage(pageId) {
+  showPage(id) {
     $$('.page').forEach(p => p.classList.remove('active'));
-    $(`#page-${pageId}`).classList.add('active');
-    
-    $$('.nav-item').forEach(n => {
-      n.classList.toggle('active', n.dataset.page === pageId);
-    });
-    
-    if(pageId === 'dashboard') this.render();
+    $(`#page-${id}`).classList.add('active');
   },
 
-  updateFormUI() {
-    const isTransfer = this.state.selectedType === 'transfer';
-    $('#group-to-account').classList.toggle('hidden', !isTransfer);
-    $('#label-account').textContent = isTransfer ? '移動元' : '口座';
-  },
-
-  saveTransaction() {
+  save() {
     const amount = parseInt($('#input-amount').value);
-    if (!amount) return alert('金額を入力してください');
+    if (!amount) return;
 
-    const tx = {
-      id: Date.now().toString(),
-      type: this.state.selectedType,
+    this.state.transactions.push({
       amount,
-      date: $('#input-date').value || new Date().toISOString().split('T')[0],
-      memo: $('#input-memo').value
-    };
+      type: this.state.type,
+      date: $('#input-date').value || new Date().toISOString().split('T')[0]
+    });
 
-    this.state.transactions.push(tx);
     localStorage.setItem('kakeibo_tx', JSON.stringify(this.state.transactions));
     this.showPage('dashboard');
+    this.render();
   },
 
   render() {
-    const summary = this.state.transactions.reduce((acc, t) => {
-      if(t.type === 'income') acc.income += t.amount;
-      if(t.type === 'expense') acc.expense += t.amount;
-      return acc;
-    }, {income: 0, expense: 0});
-
-    $('#summary-income').textContent = `¥${summary.income.toLocaleString()}`;
-    $('#summary-expense').textContent = `¥${summary.expense.toLocaleString()}`;
-    $('#summary-balance').textContent = `¥${(summary.income - summary.expense).toLocaleString()}`;
+    const income = this.state.transactions.filter(t => t.type === 'income').reduce((a, b) => a + b.amount, 0);
+    const expense = this.state.transactions.filter(t => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
+    
+    $('#summary-income').textContent = `¥${income.toLocaleString()}`;
+    $('#summary-expense').textContent = `¥${expense.toLocaleString()}`;
+    $('#summary-balance').textContent = `¥${(income - expense).toLocaleString()}`;
   }
 };
 
-window.addEventListener('DOMContentLoaded', () => App.init());
+window.onload = () => App.init();
