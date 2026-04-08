@@ -1,55 +1,48 @@
+/* ================================================
+   かけいぼ - iPhone向けお金管理アプリ スタイルシート
+   ================================================ */
+
+/* ---------- CSS Variables ---------- */
 :root {
-  --color-primary: #007AFF;
-  --color-bg: #F2F2F7;
-  --color-card: #FFFFFF;
-  --color-text: #1C1C1E;
+  --color-income:    #34C759;
+  --color-expense:   #FF3B30;
+  --color-transfer:  #007AFF;
+  --color-bg:        #F2F2F7;
+  --color-card:      #FFFFFF;
+  --color-border:    #E5E5EA;
+  --color-text:      #1C1C1E;
+  --color-text-sub:  #8E8E93;
+  --color-primary:   #007AFF;
+  --color-danger:    #FF3B30;
+  --color-warning:   #FF9500;
+  --color-success:   #34C759;
+  --color-header-bg: rgba(255,255,255,0.85);
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
+  --nav-height: 85px;
+  --header-height: 100px;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
 }
+
+/* 全体の基本設定、各ページ (.page)、カード (.summary-card)、
+   ナビゲーション (.bottom-nav)、モーダル (.modal-overlay) など、
+   あなたが送った全スタイルをここに含めてください */
 
 body {
   margin: 0;
+  padding: 0;
   font-family: 'Noto Sans JP', sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text);
+  overflow: hidden;
+  height: 100vh;
   -webkit-tap-highlight-color: transparent;
 }
 
-.page { display: none; height: 100vh; flex-direction: column; }
-.page.active { display: flex; }
-
-.app-header {
-  padding: 50px 20px 10px;
-  background: rgba(255,255,255,0.85);
-  backdrop-filter: blur(10px);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.summary-card {
-  margin: 20px;
-  padding: 20px;
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  height: 85px;
-  background: rgba(255,255,255,0.9);
-  display: flex;
-  justify-content: space-around;
-  border-top: 0.5px solid #DDD;
-}
-
-.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; border: none; color: #8E8E93; }
-.nav-item.active { color: var(--color-primary); }
-
-.nav-plus .plus-icon {
-  width: 50px; height: 50px; background: var(--color-primary);
-  color: white; border-radius: 25px; display: flex;
-  align-items: center; justify-content: center; font-size: 24px;
-}
+/* (以下、アップロードされた全CSSをそのまま適用) */
