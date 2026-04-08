@@ -2,57 +2,131 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="かけいぼ">
   <title>かけいぼ</title>
-  <link rel="stylesheet" href="./css/style.css">
+  
+  <link rel="stylesheet" href="css/style.css">
+  
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
   <div id="app">
+    <div class="safe-area-top"></div>
+
     <main id="page-container">
       <section id="page-dashboard" class="page active">
-        <header>
-          <h1>かけいぼ</h1>
-          <button id="btn-backup"><i class="fa-solid fa-cloud"></i></button>
+        <header class="app-header">
+          <div class="header-left">
+            <span id="display-month" class="header-month">2024年3月</span>
+          </div>
+          <div class="header-right">
+            <button id="btn-open-backup" class="icon-btn"><i class="fa-solid fa-cloud"></i></button>
+          </div>
         </header>
-        <div class="summary">
-          <div class="sum-item">収入<br><span id="summary-income">¥0</span></div>
-          <div class="sum-item">支出<br><span id="summary-expense">¥0</span></div>
-          <div class="sum-item">収支<br><span id="summary-balance">¥0</span></div>
-        </div>
-        <div class="section">
-          <h2>口座残高</h2>
-          <div id="account-list-dashboard"></div>
+
+        <div class="scroll-content">
+          <div class="summary-card">
+            <div class="summary-row main">
+              <div class="summary-item">
+                <label>今月の収支</label>
+                <div id="summary-balance" class="amount positive">¥0</div>
+              </div>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-row sub">
+              <div class="summary-item income">
+                <label>収入</label>
+                <div id="summary-income">¥0</div>
+              </div>
+              <div class="summary-item expense">
+                <label>支出</label>
+                <div id="summary-expense">¥0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">口座残高</div>
+          <div id="account-list-dashboard" class="account-grid"></div>
         </div>
       </section>
 
       <section id="page-input" class="page">
-        <header>
-          <button class="back-btn" data-back="dashboard">キャンセル</button>
-          <h1>入力</h1>
-          <button id="btn-save-transaction">保存</button>
+        <header class="app-header">
+          <button class="back-btn" data-back="dashboard"><i class="fa-solid fa-chevron-left"></i></button>
+          <h1 id="input-page-title">収支入力</h1>
+          <button id="btn-save-transaction" class="save-btn">保存</button>
         </header>
-        <div class="type-selector">
-          <button class="type-tab active" data-type="expense">支出</button>
-          <button class="type-tab" data-type="income">収入</button>
-        </div>
-        <div class="form">
-          <input type="number" id="input-amount" placeholder="金額" inputmode="numeric">
-          <input type="date" id="input-date">
-          <select id="input-account"></select>
-          <input type="text" id="input-memo" placeholder="メモ">
+        <div class="scroll-content">
+          <div class="type-selector-container">
+            <div class="type-selector">
+              <button class="type-tab" data-type="income">収入</button>
+              <button class="type-tab active" data-type="expense">支出</button>
+              <button class="type-tab" data-type="transfer">移動</button>
+            </div>
+          </div>
+          <div class="input-form">
+            <div class="amount-input-group">
+              <span class="currency-unit">¥</span>
+              <input type="number" id="input-amount" placeholder="0" inputmode="numeric">
+            </div>
+            <div class="form-list">
+              <div class="form-item" id="group-category">
+                <label>カテゴリー</label>
+                <div id="category-picker" class="category-grid"></div>
+              </div>
+              <div class="form-item">
+                <label id="label-account">支払元</label>
+                <select id="input-account"></select>
+              </div>
+              <div class="form-item hidden" id="group-to-account">
+                <label>移動先</label>
+                <select id="input-to-account"></select>
+              </div>
+              <div class="form-item">
+                <label>日付</label>
+                <input type="date" id="input-date">
+              </div>
+              <div class="form-item">
+                <label>メモ</label>
+                <input type="text" id="input-memo" placeholder="未入力">
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" data-page="dashboard">ホーム</button>
-      <button class="nav-item" data-page="input">＋</button>
+      <button class="nav-item active" data-page="dashboard">
+        <i class="fa-solid fa-house"></i>
+        <span>ホーム</span>
+      </button>
+      <button class="nav-item" data-page="transactions">
+        <i class="fa-solid fa-list-ul"></i>
+        <span>履歴</span>
+      </button>
+      <button class="nav-plus" data-page="input">
+        <div class="plus-icon"><i class="fa-solid fa-plus"></i></div>
+      </button>
+      <button class="nav-item" data-page="analysis">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>分析</span>
+      </button>
+      <button class="nav-item" data-page="settings">
+        <i class="fa-solid fa-gear"></i>
+        <span>設定</span>
+      </button>
     </nav>
   </div>
 
-  <script src="./js/app.js"></script>
+  <div id="toast" class="toast"></div>
+
+  <script src="js/app.js"></script>
 </body>
 </html>
