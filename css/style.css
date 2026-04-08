@@ -1,90 +1,14 @@
-body {
-  margin: 0;
-  font-family: sans-serif;
-  background-color: #f5f5f5;
-}
-
-.page { display: none; padding: 10px; }
+body { margin: 0; font-family: sans-serif; background-color: #f5f5f5; color: #333; }
+.page { display: none; padding: 15px; }
 .page.active { display: block; }
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #ccc;
-  margin-bottom: 10px;
-}
-
-.summary {
-  display: flex;
-  justify-content: space-around;
-  background: #fff;
-  padding: 10px;
-  margin-bottom: 10px;
-}
-
-.section {
-  background: #fff;
-  padding: 10px;
-  margin-bottom: 10px;
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  display: flex;
-  background: #eee;
-  border-top: 1px solid #ccc;
-  height: 50px;
-}
-
-.nav-item {
-  flex: 1;
-  border: none;
-  background: none;
-}
-
-.nav-item.active {
-  color: blue;
-  font-weight: bold;
-}
-
-.hidden { display: none; }
-
-.form input, .form select {
-  display: block;
-  width: 100%;
-  margin: 10px 0;
-  padding: 8px;
-}
-
-.category-picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.category-chip {
-  padding: 5px 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.category-chip.active {
-  background: blue;
-  color: #fff;
-}
-
-#toast {
-  position: fixed;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.7);
-  color: #fff;
-  padding: 5px 10px;
-  border-radius: 5px;
-  display: none;
-}
+header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #ddd; }
+.summary { display: flex; justify-content: space-around; background: #fff; padding: 15px; border-radius: 8px; margin: 10px 0; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.sum-item span { font-weight: bold; font-size: 1.2em; color: #007bff; }
+.section { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+.bottom-nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #fff; border-top: 1px solid #ddd; height: 60px; }
+.nav-item { flex: 1; border: none; background: none; font-size: 16px; color: #666; cursor: pointer; }
+.nav-item.active { color: #007bff; font-weight: bold; }
+.form input, .form select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+.type-selector { display: flex; gap: 5px; margin-bottom: 15px; }
+.type-tab { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: #fff; cursor: pointer; }
+.type-tab.active { background: #007bff; color: #fff; border-color: #007bff; }
