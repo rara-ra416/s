@@ -18,12 +18,12 @@
           <button id="btn-backup"><i class="fa-solid fa-cloud"></i></button>
         </header>
         <div class="summary">
-          <div>収入: <span id="summary-income">¥0</span></div>
-          <div>支出: <span id="summary-expense">¥0</span></div>
-          <div>収支: <span id="summary-balance">¥0</span></div>
+          <div class="sum-item">収入<br><span id="summary-income">¥0</span></div>
+          <div class="sum-item">支出<br><span id="summary-expense">¥0</span></div>
+          <div class="sum-item">収支<br><span id="summary-balance">¥0</span></div>
         </div>
         <div class="section">
-          <h2><i class="fa-solid fa-building-columns"></i> 口座残高</h2>
+          <h2>口座残高</h2>
           <div id="account-list-dashboard"></div>
         </div>
       </section>
@@ -34,8 +34,12 @@
           <h1>入力</h1>
           <button id="btn-save-transaction">保存</button>
         </header>
+        <div class="type-selector">
+          <button class="type-tab active" data-type="expense">支出</button>
+          <button class="type-tab" data-type="income">収入</button>
+        </div>
         <div class="form">
-          <input type="number" id="input-amount" placeholder="0" inputmode="numeric">
+          <input type="number" id="input-amount" placeholder="金額" inputmode="numeric">
           <input type="date" id="input-date">
           <select id="input-account"></select>
           <input type="text" id="input-memo" placeholder="メモ">
