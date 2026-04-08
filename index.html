@@ -2,135 +2,108 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="かけいぼ">
-  
-  <title>かけいぼ - スマートなお金管理</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>かけいぼ</title>
   <link rel="stylesheet" href="s/css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
   <div id="app">
-    <div class="safe-area-top"></div>
-
     <main id="page-container">
+
       <section id="page-dashboard" class="page active">
-        <header class="page-header">
-          <h1 class="header-title">かけいぼ</h1>
-          <div class="header-actions">
-            <button class="icon-btn" id="btn-backup"><i class="fa-solid fa-cloud"></i></button>
-          </div>
+        <header>
+          <h1>かけいぼ</h1>
+          <button id="btn-backup">バックアップ</button>
         </header>
 
-        <div class="summary-grid">
-          <div class="summary-card income">
-            <span class="summary-label">収入</span>
-            <span class="summary-amount" id="summary-income">¥0</span>
-          </div>
-          <div class="summary-card expense">
-            <span class="summary-label">支出</span>
-            <span class="summary-amount" id="summary-expense">¥0</span>
-          </div>
-          <div class="summary-card balance full-width">
-            <span class="summary-label">今月の収支</span>
-            <span class="summary-amount" id="summary-balance">¥0</span>
-          </div>
+        <div class="summary">
+          <div>収入: <span id="summary-income">¥0</span></div>
+          <div>支出: <span id="summary-expense">¥0</span></div>
+          <div>収支: <span id="summary-balance">¥0</span></div>
         </div>
 
-        <div class="section-card">
-          <div class="section-header">
-            <span class="section-title"><i class="fa-solid fa-building-columns"></i> 口座残高</span>
-          </div>
-          <div id="account-list-dashboard" class="account-list"></div>
+        <div class="section">
+          <h2>口座残高</h2>
+          <div id="account-list-dashboard"></div>
         </div>
 
-        <div class="section-card">
-          <div class="section-header">
-            <span class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> 最近の取引</span>
-          </div>
-          <div id="recent-transactions" class="transaction-list"></div>
+        <div class="section">
+          <h2>最近の取引</h2>
+          <div id="recent-transactions"></div>
         </div>
-        <div class="bottom-spacer"></div>
       </section>
 
       <section id="page-transactions" class="page">
-        <header class="page-header">
-          <button class="back-btn" data-back="dashboard"><i class="fa-solid fa-chevron-left"></i></button>
-          <h1 class="header-title">取引一覧</h1>
+        <header>
+          <button class="back-btn" data-back="dashboard">戻る</button>
+          <h1>取引一覧</h1>
         </header>
-        <div id="all-transactions" class="transaction-list"></div>
-        <div class="bottom-spacer"></div>
+        <div id="all-transactions"></div>
       </section>
 
       <section id="page-input" class="page">
-        <header class="page-header">
-          <button class="back-btn" data-back="dashboard"><i class="fa-solid fa-xmark"></i></button>
-          <h1 class="header-title" id="input-page-title">入力</h1>
-          <button class="text-btn" id="btn-save-transaction">保存</button>
+        <header>
+          <button class="back-btn" data-back="dashboard">キャンセル</button>
+          <h1>入力</h1>
+          <button id="btn-save-transaction">保存</button>
         </header>
 
-        <div class="type-tabs">
+        <div class="type-selector">
           <button class="type-tab" data-type="income">収入</button>
           <button class="type-tab active" data-type="expense">支出</button>
           <button class="type-tab" data-type="transfer">移動</button>
         </div>
 
-        <div class="form-body">
+        <div class="form">
+          <input type="number" id="input-amount" placeholder="金額" inputmode="numeric">
+          
+          <div id="group-category">
+            <label>カテゴリー</label>
+            <div id="category-picker"></div>
+          </div>
+
           <div class="form-group">
-            <input type="number" id="input-amount" class="amount-input" placeholder="0" inputmode="numeric">
+            <label>支払元</label>
+            <select id="input-account"></select>
           </div>
-          <div id="group-category" class="form-group">
-            <label class="form-label">カテゴリー</label>
-            <div id="category-picker" class="category-picker"></div>
+
+          <div id="group-to-account" class="hidden">
+            <label>移動先</label>
+            <select id="input-to-account"></select>
           </div>
-          <div class="form-group">
-            <label class="form-label">支払元</label>
-            <select id="input-account" class="form-select"></select>
-          </div>
-          <div id="group-to-account" class="form-group hidden">
-            <label class="form-label">移動先</label>
-            <select id="input-to-account" class="form-select"></select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">日付</label>
-            <input type="date" id="input-date" class="form-input">
-          </div>
-          <div class="form-group">
-            <input type="text" id="input-memo" class="form-input" placeholder="メモ">
-          </div>
+
+          <input type="date" id="input-date">
+          <input type="text" id="input-memo" placeholder="メモ">
         </div>
       </section>
 
       <section id="page-report" class="page">
-        <header class="page-header"><h1 class="header-title">レポート</h1></header>
-        <div class="chart-wrap" style="height: 250px;"><canvas id="monthly-bar-chart"></canvas></div>
-        <div class="bottom-spacer"></div>
+        <header><h1>レポート</h1></header>
+        <canvas id="monthly-bar-chart"></canvas>
       </section>
+
     </main>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" data-page="dashboard"><i class="fa-solid fa-house"></i><span>ホーム</span></button>
-      <button class="nav-item" data-page="transactions"><i class="fa-solid fa-list-ul"></i><span>履歴</span></button>
-      <button class="nav-item nav-add" data-page="input"><div class="nav-add-circle"><i class="fa-solid fa-plus"></i></div></button>
-      <button class="nav-item" data-page="report"><i class="fa-solid fa-chart-pie"></i><span>グラフ</span></button>
+      <button class="nav-item active" data-page="dashboard">ホーム</button>
+      <button class="nav-item" data-page="transactions">履歴</button>
+      <button class="nav-item" data-page="input">＋</button>
+      <button class="nav-item" data-page="report">グラフ</button>
     </nav>
   </div>
 
-  <div id="modal-backup" class="modal-overlay hidden">
-    <div class="modal-sheet">
-      <button id="btn-export-json" class="primary-btn">JSON書き出し</button>
-      <input type="file" id="import-json" class="hidden">
-      <label for="import-json" class="secondary-btn">復元</label>
+  <div id="modal-backup" class="hidden">
+    <div class="modal-content">
+      <button id="btn-export-json">JSON書き出し</button>
+      <input type="file" id="import-json">
       <button class="modal-close" data-modal="backup">閉じる</button>
     </div>
   </div>
-  <div id="toast" class="toast">完了</div>
+
+  <div id="toast"></div>
 
   <script src="s/js/app.js"></script>
 </body>
