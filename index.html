@@ -23,7 +23,7 @@
       <section id="page-dashboard" class="page active">
         <header class="app-header">
           <div class="header-left">
-            <span id="display-month" class="header-month">2026年4月</span>
+            <span id="display-month" class="header-month"></span>
           </div>
           <div class="header-right">
             <button id="btn-open-backup" class="icon-btn"><i class="fa-solid fa-cloud"></i></button>
@@ -31,11 +31,19 @@
         </header>
 
         <div class="scroll-content">
+          <div id="wallet-check-banner" class="wallet-banner hidden">
+            <div class="wallet-banner-content">
+              <i class="fa-solid fa-wallet"></i>
+              <span>財布の残高を確認しましょう</span>
+            </div>
+            <i class="fa-solid fa-chevron-right"></i>
+          </div>
+
           <div class="summary-card">
             <div class="summary-row main">
               <div class="summary-item">
                 <label>今月の収支</label>
-                <div id="summary-balance" class="amount positive">¥0</div>
+                <div id="summary-balance" class="amount">¥0</div>
               </div>
             </div>
             <div class="summary-divider"></div>
@@ -50,39 +58,33 @@
               </div>
             </div>
           </div>
+
+          <div class="month-nav">
+            <button id="btn-prev-month"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="month-label">今月</div>
+            <button id="btn-next-month"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+
           <div class="section-title">口座残高</div>
           <div id="account-list-dashboard" class="account-grid"></div>
+
+          <div class="section-title">最近の取引</div>
+          <div id="recent-transactions" class="recent-list"></div>
         </div>
       </section>
 
-      <section id="page-input" class="page">
-        <header class="app-header">
-          <button class="back-btn" data-back="dashboard"><i class="fa-solid fa-chevron-left"></i></button>
-          <h1>収支入力</h1>
-          <button id="btn-save-transaction" class="save-btn">保存</button>
-        </header>
-        <div class="scroll-content">
-          <div class="type-selector">
-            <button class="type-tab" data-type="income">収入</button>
-            <button class="type-tab active" data-type="expense">支出</button>
-            <button class="type-tab" data-type="transfer">移動</button>
-          </div>
-          <div class="form-list">
-            <input type="number" id="input-amount" placeholder="0" inputmode="numeric">
-            <select id="input-account"></select>
-            <input type="date" id="input-date">
-            <input type="text" id="input-memo" placeholder="メモ">
-          </div>
-        </div>
-      </section>
-    </main>
+      </main>
 
     <nav class="bottom-nav">
       <button class="nav-item active" data-page="dashboard"><i class="fa-solid fa-house"></i><span>ホーム</span></button>
+      <button class="nav-item" data-page="transactions"><i class="fa-solid fa-list-ul"></i><span>履歴</span></button>
       <button class="nav-plus" data-page="input"><div class="plus-icon"><i class="fa-solid fa-plus"></i></div></button>
       <button class="nav-item" data-page="analysis"><i class="fa-solid fa-chart-pie"></i><span>分析</span></button>
+      <button class="nav-item" data-page="settings"><i class="fa-solid fa-gear"></i><span>設定</span></button>
     </nav>
   </div>
+
+  <div id="toast" class="toast"></div>
 
   <script src="js/app.js"></script>
 </body>
