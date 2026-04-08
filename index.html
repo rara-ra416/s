@@ -16,29 +16,29 @@
       <section id="page-dashboard" class="page active">
         <header>
           <h1>かけいぼ</h1>
-          <button id="btn-backup"><i class="fa-solid fa-cloud"></i></button>
+          <button id="btn-backup">バックアップ</button>
         </header>
 
         <div class="summary">
-          <div class="sum-item">収入<br><span id="summary-income">¥0</span></div>
-          <div class="sum-item">支出<br><span id="summary-expense">¥0</span></div>
-          <div class="sum-item">収支<br><span id="summary-balance">¥0</span></div>
+          <div>収入: <span id="summary-income">¥0</span></div>
+          <div>支出: <span id="summary-expense">¥0</span></div>
+          <div>収支: <span id="summary-balance">¥0</span></div>
         </div>
 
         <div class="section">
-          <div class="sec-header"><i class="fa-solid fa-building-columns"></i> 口座残高</div>
+          <h2>口座残高</h2>
           <div id="account-list-dashboard"></div>
         </div>
 
         <div class="section">
-          <div class="sec-header"><i class="fa-solid fa-clock-rotate-left"></i> 最近の取引</div>
+          <h2>最近の取引</h2>
           <div id="recent-transactions"></div>
         </div>
       </section>
 
       <section id="page-transactions" class="page">
         <header>
-          <button class="back-btn" data-back="dashboard"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="back-btn" data-back="dashboard">戻る</button>
           <h1>取引一覧</h1>
         </header>
         <div id="all-transactions"></div>
@@ -46,9 +46,9 @@
 
       <section id="page-input" class="page">
         <header>
-          <button class="back-btn" data-back="dashboard"><i class="fa-solid fa-xmark"></i></button>
+          <button class="back-btn" data-back="dashboard">キャンセル</button>
           <h1>入力</h1>
-          <button id="btn-save-transaction" class="save-btn">保存</button>
+          <button id="btn-save-transaction">保存</button>
         </header>
 
         <div class="type-selector">
@@ -58,11 +58,9 @@
         </div>
 
         <div class="form">
-          <div class="amount-wrap">
-            <input type="number" id="input-amount" placeholder="0" inputmode="numeric">
-          </div>
+          <input type="number" id="input-amount" placeholder="金額" inputmode="numeric">
           
-          <div id="group-category" class="form-group">
+          <div id="group-category">
             <label>カテゴリー</label>
             <div id="category-picker"></div>
           </div>
@@ -72,46 +70,35 @@
             <select id="input-account"></select>
           </div>
 
-          <div id="group-to-account" class="form-group hidden">
+          <div id="group-to-account" class="hidden">
             <label>移動先</label>
             <select id="input-to-account"></select>
           </div>
 
-          <div class="form-group">
-            <label>日付</label>
-            <input type="date" id="input-date">
-          </div>
-          
-          <div class="form-group">
-            <input type="text" id="input-memo" placeholder="メモを入力">
-          </div>
+          <input type="date" id="input-date">
+          <input type="text" id="input-memo" placeholder="メモ">
         </div>
       </section>
 
       <section id="page-report" class="page">
         <header><h1>レポート</h1></header>
-        <div class="canvas-container">
-          <canvas id="monthly-bar-chart"></canvas>
-        </div>
+        <canvas id="monthly-bar-chart"></canvas>
       </section>
 
     </main>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" data-page="dashboard"><i class="fa-solid fa-house"></i><br>ホーム</button>
-      <button class="nav-item" data-page="transactions"><i class="fa-solid fa-list-ul"></i><br>履歴</button>
-      <button class="nav-item nav-plus" data-page="input"><i class="fa-solid fa-plus"></i></button>
-      <button class="nav-item" data-page="report"><i class="fa-solid fa-chart-pie"></i><br>グラフ</button>
+      <button class="nav-item active" data-page="dashboard">ホーム</button>
+      <button class="nav-item" data-page="transactions">履歴</button>
+      <button class="nav-item" data-page="input">＋</button>
+      <button class="nav-item" data-page="report">グラフ</button>
     </nav>
   </div>
 
-  <div id="modal-backup" class="hidden modal-overlay">
+  <div id="modal-backup" class="hidden">
     <div class="modal-content">
-      <button id="btn-export-json">JSONとして保存</button>
-      <label class="file-label">
-        復元する
-        <input type="file" id="import-json" style="display:none">
-      </label>
+      <button id="btn-export-json">JSON書き出し</button>
+      <input type="file" id="import-json">
       <button class="modal-close" data-modal="backup">閉じる</button>
     </div>
   </div>
