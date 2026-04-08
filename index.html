@@ -20,6 +20,7 @@
     <div class="safe-area-top"></div>
 
     <main id="page-container">
+      
       <section id="page-dashboard" class="page active">
         <header class="app-header">
           <div class="header-left">
@@ -76,17 +77,13 @@
               <input type="number" id="input-amount" placeholder="0" inputmode="numeric">
             </div>
             <div class="form-list">
-              <div class="form-item" id="group-category">
+              <div class="form-item">
                 <label>カテゴリー</label>
                 <div id="category-picker" class="category-grid"></div>
               </div>
               <div class="form-item">
-                <label id="label-account">支払元</label>
+                <label id="label-account">口座</label>
                 <select id="input-account"></select>
-              </div>
-              <div class="form-item hidden" id="group-to-account">
-                <label>移動先</label>
-                <select id="input-to-account"></select>
               </div>
               <div class="form-item">
                 <label>日付</label>
@@ -107,10 +104,6 @@
         <i class="fa-solid fa-house"></i>
         <span>ホーム</span>
       </button>
-      <button class="nav-item" data-page="transactions">
-        <i class="fa-solid fa-list-ul"></i>
-        <span>履歴</span>
-      </button>
       <button class="nav-plus" data-page="input">
         <div class="plus-icon"><i class="fa-solid fa-plus"></i></div>
       </button>
@@ -118,14 +111,8 @@
         <i class="fa-solid fa-chart-pie"></i>
         <span>分析</span>
       </button>
-      <button class="nav-item" data-page="settings">
-        <i class="fa-solid fa-gear"></i>
-        <span>設定</span>
-      </button>
     </nav>
   </div>
-
-  <div id="toast" class="toast"></div>
 
   <script src="js/app.js"></script>
 </body>
