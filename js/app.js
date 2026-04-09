@@ -1,32 +1,24 @@
 /* =====================================================
-   かけいぼ - メインアプリロジック (GitHub Pages対応版)
+   かけいぼ - メインアプリロジック (タブ切り替え修正済み)
    ===================================================== */
 
 'use strict';
 
-// ─── ユーティリティ ───
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 const uuid = () => crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
 const fmt = (n) => '¥' + Math.abs(n || 0).toLocaleString('ja-JP');
 const today = () => new Date().toISOString().split('T')[0];
 
-// ─── アプリの状態管理 ───
 const State = {
   transactions: [],
   accounts: [],
   categories: [],
   currentMonth: { y: new Date().getFullYear(), m: new Date().getMonth() + 1 },
 
-  async init() {
-    // ローカルストレージからデータを読み込み（tablesフォルダは使いません）
+  init() {
     this.loadData();
-    
-    // データが空の場合の初期設定
-    if (this.accounts.length === 0) {
-      this.seedData();
-    }
-    
+    if (this.accounts.length === 0) this.seedData();
     UI.init();
   },
 
@@ -47,37 +39,68 @@ const State = {
     ];
     this.categories = [
       { id: 'cat_1', name: '食費', icon: '🍔', type: 'expense' },
-      { id: 'cat_2', name: '給与', icon: '💰', type: 'income' },
-      { id: 'cat_3', name: '趣味', icon: '🎮', type: 'expense' }
+      { id: 'cat_2', name: '給与', icon: '💰', type: 'income' }
     ];
     this.save('accounts');
     this.save('categories');
   }
 };
 
-// ─── UI制御 ───
 const UI = {
   init() {
     this.renderDashboard();
     this.updateMonthDisplay();
     this.setupEventListeners();
     this.populateSelects();
+    // 初期状態の日付をセット
+    if($('#input-date')) $('#input-date').value = today();
+  },
+
+  setupEventListeners() {
+    // ページナビゲーション
+    $$('.nav-item, .nav-plus').forEach(btn => {
+      btn.onclick = () => this.showPage(btn.dataset.page);
+    });
+
+    // ★ 収入・支出・移動のタブ切り替え (ここが修正ポイント) ★
+    $$('.type-tab').forEach(tab => {
+      tab.onclick = () => {
+        // すべてのタブから active クラスを消す
+        $$('.type-tab').forEach(t => t.classList.remove('active'));
+        // クリックされたタブに active をつける
+        tab.classList.add('active');
+        
+        const type = tab.dataset.type;
+        console.log("Selected type:", type); // デバッグ用
+
+        // 入力項目の表示切り替え（移動の場合などの制御）
+        this.toggleInputFields(type);
+      };
+    });
+
+    // 保存ボタン
+    const saveBtn = $('#btn-save-transaction');
+    if (saveBtn) saveBtn.onclick = () => this.handleSave();
+  },
+
+  toggleInputFields(type) {
+    // 移動(transfer)の場合の表示切り替え
+    const isTransfer = (type === 'transfer');
+    if($('#row-account')) $('#row-account').classList.toggle('hidden', isTransfer);
+    if($('#row-category')) $('#row-category').classList.toggle('hidden', isTransfer);
+    if($('#row-from-account')) $('#row-from-account').classList.toggle('hidden', !isTransfer);
+    if($('#row-to-account')) $('#row-to-account').classList.toggle('hidden', !isTransfer);
   },
 
   showPage(pageId) {
     $$('.page').forEach(p => p.classList.remove('active'));
     $(`#page-${pageId}`).classList.add('active');
-    
-    $$('.nav-item').forEach(n => {
-      n.classList.toggle('active', n.dataset.page === pageId);
-    });
-
+    $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === pageId));
     if (pageId === 'dashboard') this.renderDashboard();
   },
 
   updateMonthDisplay() {
-    const el = $('#display-month');
-    if (el) el.textContent = `${State.currentMonth.y}年 ${State.currentMonth.m}月`;
+    if ($('#display-month')) $('#display-month').textContent = `${State.currentMonth.y}年 ${State.currentMonth.m}月`;
   },
 
   renderDashboard() {
@@ -87,13 +110,9 @@ const UI = {
     const income = monthlyTrans.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const expense = monthlyTrans.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-    const balEl = $('#summary-balance');
-    const incEl = $('#summary-income');
-    const expEl = $('#summary-expense');
-
-    if (balEl) balEl.textContent = fmt(income - expense);
-    if (incEl) incEl.textContent = fmt(income);
-    if (expEl) expEl.textContent = fmt(expense);
+    if ($('#summary-balance')) $('#summary-balance').textContent = fmt(income - expense);
+    if ($('#summary-income')) $('#summary-income').textContent = fmt(income);
+    if ($('#summary-expense')) $('#summary-expense').textContent = fmt(expense);
 
     const grid = $('#account-list-dashboard');
     if (grid) {
@@ -107,47 +126,23 @@ const UI = {
   },
 
   populateSelects() {
-    const accSelect = $('#input-account');
-    const catSelect = $('#input-category');
-    
-    if (accSelect) {
-      accSelect.innerHTML = State.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-    }
-    if (catSelect) {
-      catSelect.innerHTML = State.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
-    }
-  },
-
-  setupEventListeners() {
-    // ナビゲーション切り替え
-    $$('.nav-item, .nav-plus').forEach(btn => {
-      btn.onclick = () => this.showPage(btn.dataset.page);
-    });
-
-    // 戻るボタン
-    $$('.back-btn').forEach(btn => {
-      btn.onclick = () => this.showPage(btn.dataset.back);
-    });
-
-    // 取引保存
-    const saveBtn = $('#btn-save-transaction');
-    if (saveBtn) {
-      saveBtn.onclick = () => this.handleSave();
+    const accHtml = State.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    if ($('#input-account')) $('#input-account').innerHTML = accHtml;
+    if ($('#input-from-account')) $('#input-from-account').innerHTML = accHtml;
+    if ($('#input-to-account')) $('#input-to-account').innerHTML = accHtml;
+    if ($('#input-category')) {
+      $('#input-category').innerHTML = State.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
     }
   },
 
   handleSave() {
-    const amountInput = $('#input-amount');
-    const amount = parseInt(amountInput.value);
-    
-    if (!amount) {
-      alert('金額を入力してください');
-      return;
-    }
+    const amount = parseInt($('#input-amount').value);
+    if (!amount) { alert('金額を入力してください'); return; }
 
-    const type = $('.type-tab.active')?.dataset.type || 'expense';
+    const activeTab = $('.type-tab.active');
+    const type = activeTab ? activeTab.dataset.type : 'expense';
     
-    const newTrans = {
+    const trans = {
       id: uuid(),
       type: type,
       amount: amount,
@@ -156,24 +151,20 @@ const UI = {
       account_id: $('#input-account').value
     };
 
-    // 口座残高を計算
-    const account = State.accounts.find(a => a.id === newTrans.account_id);
-    if (account) {
-      if (type === 'income') account.balance += amount;
-      else if (type === 'expense') account.balance -= amount;
+    const acc = State.accounts.find(a => a.id === trans.account_id);
+    if (acc) {
+      if (type === 'income') acc.balance += amount;
+      else if (type === 'expense') acc.balance -= amount;
     }
 
-    State.transactions.push(newTrans);
+    State.transactions.push(trans);
     State.save('transactions');
     State.save('accounts');
 
-    amountInput.value = '';
+    $('#input-amount').value = '';
     alert('保存しました');
     this.showPage('dashboard');
   }
 };
 
-// 起動
-document.addEventListener('DOMContentLoaded', () => {
-  State.init();
-});
+document.addEventListener('DOMContentLoaded', () => State.init());
