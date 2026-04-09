@@ -7,9 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="かけいぼ">
   <title>かけいぼ</title>
-  
   <link rel="stylesheet" href="css/style.css">
-  
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -17,9 +15,11 @@
 <body>
 
   <div id="app">
+
     <div class="safe-area-top"></div>
 
     <main id="page-container">
+
       <section id="page-dashboard" class="page active">
         <header class="app-header">
           <div class="header-left">
@@ -73,15 +73,356 @@
         </div>
       </section>
 
-      </main>
+      <section id="page-transactions" class="page">
+        <header class="app-header">
+          <h1>取引履歴</h1>
+          <button id="btn-filter-toggle" class="icon-btn"><i class="fa-solid fa-filter"></i></button>
+        </header>
+
+        <div id="filter-bar" class="filter-bar hidden">
+          <select id="filter-type">
+            <option value="">すべての種類</option>
+            <option value="income">収入</option>
+            <option value="expense">支出</option>
+            <option value="transfer">移動</option>
+          </select>
+          <select id="filter-account">
+            <option value="">すべての口座</option>
+          </select>
+        </div>
+
+        <div class="scroll-content">
+          <div id="transaction-list"></div>
+        </div>
+      </section>
+
+      <section id="page-input" class="page">
+        <header class="app-header">
+          <button class="back-btn" data-back="dashboard"><i class="fa-solid fa-chevron-left"></i></button>
+          <h1 id="input-page-title">収支入力</h1>
+          <button id="btn-save-transaction" class="save-btn">保存</button>
+        </header>
+
+        <div class="scroll-content">
+          <div class="type-selector">
+            <button class="type-tab" data-type="income">収入</button>
+            <button class="type-tab active" data-type="expense">支出</button>
+            <button class="type-tab" data-type="transfer">移動</button>
+          </div>
+
+          <div class="form-group amount-group">
+            <div class="currency-label">¥</div>
+            <input type="number" id="input-amount" placeholder="0" inputmode="numeric">
+          </div>
+
+          <div class="form-list">
+            <div class="form-item" id="row-account">
+              <label><i class="fa-solid fa-wallet"></i> 口座</label>
+              <select id="input-account"></select>
+            </div>
+
+            <div class="form-item hidden" id="row-from-account">
+              <label><i class="fa-solid fa-arrow-up-from-bracket"></i> 出金元</label>
+              <select id="input-from-account"></select>
+            </div>
+            <div class="form-item hidden" id="row-to-account">
+              <label><i class="fa-solid fa-arrow-down-to-bracket"></i> 入金先</label>
+              <select id="input-to-account"></select>
+            </div>
+
+            <div class="form-item" id="row-category">
+              <label><i class="fa-solid fa-tag"></i> カテゴリ</label>
+              <select id="input-category"></select>
+            </div>
+
+            <div class="form-item">
+              <label><i class="fa-solid fa-calendar"></i> 日付</label>
+              <input type="date" id="input-date">
+            </div>
+
+            <div class="form-item">
+              <label><i class="fa-solid fa-note-sticky"></i> メモ</label>
+              <input type="text" id="input-memo" placeholder="未入力">
+            </div>
+          </div>
+
+          <div class="travel-option-container" id="travel-option-container">
+            <label class="toggle-item">
+              <span><i class="fa-solid fa-person-walking"></i> 移動記録も追加する</span>
+              <input type="checkbox" id="check-add-travel">
+            </label>
+
+            <div id="travel-form-fields" class="travel-fields hidden">
+              <div class="form-list mini">
+                <div class="form-item">
+                  <label>出発地</label>
+                  <input type="text" id="input-travel-from" placeholder="自宅 など">
+                </div>
+                <div class="form-item">
+                  <label>目的地</label>
+                  <input type="text" id="input-travel-to" placeholder="職場 など">
+                </div>
+                <div class="form-item">
+                  <label>交通手段</label>
+                  <select id="input-travel-mode">
+                    <option value="train">電車</option>
+                    <option value="bus">バス</option>
+                    <option value="taxi">タクシー</option>
+                    <option value="car">車</option>
+                    <option value="walk">徒歩</option>
+                    <option value="other">その他</option>
+                  </select>
+                </div>
+                <div class="form-item">
+                  <label>目的</label>
+                  <input type="text" id="input-travel-purpose" placeholder="通勤、買い物 など">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="delete-btn-container" class="delete-area hidden">
+            <button id="btn-delete-transaction" class="danger-btn">この取引を削除</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-analysis" class="page">
+        <header class="app-header">
+          <h1>分析レポート</h1>
+        </header>
+        <div class="scroll-content">
+          <div class="chart-card">
+            <canvas id="balanceChart"></canvas>
+          </div>
+          <div class="section-title">カテゴリー別支出</div>
+          <div id="category-report-list" class="report-list"></div>
+        </div>
+      </section>
+
+      <section id="page-settings" class="page">
+        <header class="app-header">
+          <h1>設定</h1>
+        </header>
+        <div class="scroll-content">
+          <div class="settings-group">
+            <button class="settings-item" data-page="accounts-mgmt">
+              <div class="item-icon"><i class="fa-solid fa-building-columns"></i></div>
+              <span>口座の管理</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <button class="settings-item" data-page="categories-mgmt">
+              <div class="item-icon"><i class="fa-solid fa-tags"></i></div>
+              <span>カテゴリーの管理</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <button class="settings-item" data-page="travel-logs">
+              <div class="item-icon"><i class="fa-solid fa-route"></i></div>
+              <span>移動記録の一覧</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <div class="settings-group">
+            <button class="settings-item" id="btn-show-backup">
+              <div class="item-icon apple"><i class="fa-brands fa-apple"></i></div>
+              <span>iCloudバックアップ</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <div class="app-info">
+            <p>かけいぼ v1.0.0</p>
+            <p>© 2026 Personal Finance App</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-accounts-mgmt" class="page child-page">
+        <header class="app-header">
+          <button class="back-btn" data-back="settings"><i class="fa-solid fa-chevron-left"></i></button>
+          <h1>口座管理</h1>
+          <button id="btn-add-account" class="icon-btn"><i class="fa-solid fa-plus"></i></button>
+        </header>
+        <div class="scroll-content">
+          <div id="mgmt-account-list" class="mgmt-list"></div>
+        </div>
+      </section>
+
+      <section id="page-categories-mgmt" class="page child-page">
+        <header class="app-header">
+          <button class="back-btn" data-back="settings"><i class="fa-solid fa-chevron-left"></i></button>
+          <h1>カテゴリー</h1>
+        </header>
+        <div class="type-selector mini">
+          <button class="type-tab active" id="tab-cat-expense">支出</button>
+          <button class="type-tab" id="tab-cat-income">収入</button>
+        </div>
+        <div class="scroll-content">
+          <div id="mgmt-category-list" class="mgmt-list"></div>
+          <button id="btn-add-category" class="secondary-btn margin-v">
+            <i class="fa-solid fa-plus"></i> カテゴリーを追加
+          </button>
+        </div>
+      </section>
+
+      <section id="page-travel-logs" class="page child-page">
+        <header class="app-header">
+          <button class="back-btn" data-back="settings"><i class="fa-solid fa-chevron-left"></i></button>
+          <h1>移動記録</h1>
+        </header>
+        <div class="scroll-content">
+          <div id="travel-logs-list" class="travel-list"></div>
+        </div>
+      </section>
+
+      <section id="page-wallet-check" class="page child-page">
+        <header class="app-header">
+          <button class="back-btn" data-back="dashboard"><i class="fa-solid fa-xmark"></i></button>
+          <h1>財布チェック</h1>
+        </header>
+        <div class="scroll-content">
+          <div class="wallet-check-card">
+            <p class="guide">現在の財布の中身を入力してください。<br>帳簿との差額を自動で調整します。</p>
+            <div class="form-group amount-group">
+              <div class="currency-label">¥</div>
+              <input type="number" id="wallet-actual-amount" placeholder="金額を入力" inputmode="numeric">
+            </div>
+            <div class="wallet-diff-preview" id="wallet-diff-preview">
+              帳簿残高: <span id="wallet-book-amount">¥0</span><br>
+              差額: <span id="wallet-diff-amount">¥0</span>
+            </div>
+            <button id="btn-finish-wallet-check" class="primary-btn full-width">確認完了</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" data-page="dashboard"><i class="fa-solid fa-house"></i><span>ホーム</span></button>
-      <button class="nav-item" data-page="transactions"><i class="fa-solid fa-list-ul"></i><span>履歴</span></button>
-      <button class="nav-plus" data-page="input"><div class="plus-icon"><i class="fa-solid fa-plus"></i></div></button>
-      <button class="nav-item" data-page="analysis"><i class="fa-solid fa-chart-pie"></i><span>分析</span></button>
-      <button class="nav-item" data-page="settings"><i class="fa-solid fa-gear"></i><span>設定</span></button>
+      <button class="nav-item active" data-page="dashboard">
+        <i class="fa-solid fa-house"></i>
+        <span>ホーム</span>
+      </button>
+      <button class="nav-item" data-page="transactions">
+        <i class="fa-solid fa-list-ul"></i>
+        <span>履歴</span>
+      </button>
+      <button class="nav-plus" data-page="input">
+        <div class="plus-icon"><i class="fa-solid fa-plus"></i></div>
+      </button>
+      <button class="nav-item" data-page="analysis">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>分析</span>
+      </button>
+      <button class="nav-item" data-page="settings">
+        <i class="fa-solid fa-gear"></i>
+        <span>設定</span>
+      </button>
     </nav>
+
+  </div><div id="modal-account" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-account-title">口座の追加</h2>
+        <button class="modal-close" data-modal="account"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-list">
+          <div class="form-item">
+            <label>口座名</label>
+            <input type="text" id="acc-name" placeholder="例: 三井住友銀行">
+          </div>
+          <div class="form-item">
+            <label>種類</label>
+            <select id="acc-type">
+              <option value="cash">現金</option>
+              <option value="bank">銀行</option>
+              <option value="credit">クレジットカード</option>
+              <option value="emoney">電子マネー</option>
+              <option value="other">その他</option>
+            </select>
+          </div>
+          <div class="form-item" id="acc-initial-row">
+            <label>初期残高</label>
+            <input type="number" id="acc-initial" value="0">
+          </div>
+          <div class="form-item">
+            <label class="toggle-item no-border">
+              <span>財布チェックの対象</span>
+              <input type="checkbox" id="acc-is-wallet">
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-account" class="primary-btn full-width">保存</button>
+          <button id="btn-delete-account" class="text-btn danger hidden">口座を削除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-category" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-cat-title">カテゴリーの追加</h2>
+        <button class="modal-close" data-modal="category"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-list">
+          <div class="form-item">
+            <label>カテゴリー名</label>
+            <input type="text" id="cat-name" placeholder="例: カフェ">
+          </div>
+          <div class="form-item">
+            <label>アイコン（絵文字）</label>
+            <input type="text" id="cat-icon" placeholder="☕">
+          </div>
+          <div class="form-item">
+            <label>カラー</label>
+            <input type="color" id="cat-color" value="#007AFF">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-category" class="primary-btn full-width">保存</button>
+          <button id="btn-delete-category" class="text-btn danger hidden">削除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-backup" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 class="modal-title"><i class="fa-brands fa-apple"></i> iCloudバックアップ</h2>
+        <button class="modal-close" data-modal="backup"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">データをJSONファイルとしてエクスポートし、iCloudや端末に保存できます。バックアップから復元することも可能です。</p>
+        <div class="backup-buttons">
+          <button class="secondary-btn full-width" id="btn-export-backup">
+            <i class="fa-solid fa-cloud-arrow-up"></i> データをエクスポート（JSON）
+          </button>
+          <div class="backup-divider">または</div>
+          <label class="secondary-btn full-width" style="cursor:pointer;text-align:center;">
+            <i class="fa-solid fa-cloud-arrow-down"></i> バックアップから復元
+            <input type="file" id="import-file" accept=".json" style="display:none;">
+          </label>
+        </div>
+        <div id="backup-log" class="backup-log hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-confirm" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <h3 class="dialog-title" id="confirm-title">確認</h3>
+      <p class="dialog-message" id="confirm-message"></p>
+      <div class="dialog-buttons">
+        <button class="secondary-btn" id="btn-confirm-cancel">キャンセル</button>
+        <button class="primary-btn danger" id="btn-confirm-ok">削除</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast"></div>
