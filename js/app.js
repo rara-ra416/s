@@ -1,7 +1,3 @@
-/* =====================================================
-   かけいぼ - メインアプリロジック
-   ===================================================== */
-
 'use strict';
 
 /* ─── ユーティリティ ─── */
@@ -12,9 +8,12 @@ const fmt = (n) => '¥' + Math.abs(n).toLocaleString('ja-JP');
 const fmtSigned = (n) => (n >= 0 ? '+¥' : '-¥') + Math.abs(n).toLocaleString('ja-JP');
 const today = () => new Date().toISOString().split('T')[0];
 
-/* ─── API ラッパー (REST & LocalStorage) ─── */
+/* ─── API ラッパー ─── */
 const API = {
-  /* あなたが実装したデータの保存・取得・削除ロジック */
+  /* あなたが実装した localStorage や fetch のロジック */
+  async list(table, params = {}) {
+    // ユーザー提供のロジック
+  }
 };
 
 /* ─── アプリケーション本体 ─── */
@@ -22,7 +21,7 @@ const App = {
   state: {
     currentMonth: { y: new Date().getFullYear(), m: new Date().getMonth() + 1 },
     editingTxId: null,
-    // (その他、送っていただいた全ステータス)
+    // その他すべての状態保持
   },
 
   async init() {
@@ -31,8 +30,7 @@ const App = {
     this.showPage('dashboard');
   },
 
-  /* setupEventListeners, renderDashboard, saveTransaction, 
-     openBackupModal などの全メソッドをここに含めてください */
+  /* setupEventListeners, renderDashboard, saveTransaction などの全メソッド */
 };
 
 window.addEventListener('DOMContentLoaded', () => App.init());
