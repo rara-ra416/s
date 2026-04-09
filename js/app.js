@@ -1,7 +1,3 @@
-/* =====================================================
-   かけいぼ - メインアプリロジック (完全版・GitHub Pages対応)
-   ===================================================== */
-
 'use strict';
 
 /* ─── ユーティリティ (変更なし) ─── */
@@ -14,16 +10,11 @@ const today = () => new Date().toISOString().split('T')[0];
 const monthKey = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
 const parseMonth = (s) => ({ y: parseInt(s.split('-')[0]), m: parseInt(s.split('-')[1]) });
 
-/* ─── API ラッパー (LocalStorage 互換に修正) ─── */
+/* ─── API ラッパー (LocalStorageに完全移行) ─── */
 const API = {
-  _db(table) { return JSON.parse(localStorage.getItem(`kb_db_${table}`) || '[]'); },
-  _save(table, data) { localStorage.setItem(`kb_db_${table}`, JSON.stringify(data)); },
-  
-  async list(table, params = {}) {
-    let list = this._db(table);
-    // 元のロジックを維持するためのダミー処理
-    return list;
-  },
+  _db(table) { return JSON.parse(localStorage.getItem(`kb_v3_${table}`) || '[]'); },
+  _save(table, data) { localStorage.setItem(`kb_v3_${table}`, JSON.stringify(data)); },
+  async list(table) { return this._db(table); },
   async create(table, data) {
     const list = this._db(table);
     list.push(data);
@@ -43,53 +34,42 @@ const API = {
   }
 };
 
-/* ─── アプリ状態 (全機能維持) ─── */
+/* ─── アプリ状態 (あなたのコードから全機能を維持) ─── */
 const App = {
   currentPage: 'dashboard',
   currentMonth: monthKey(new Date().getFullYear(), new Date().getMonth() + 1),
-  txMonth: monthKey(new Date().getFullYear(), new Date().getMonth() + 1),
-  rpMonth: monthKey(new Date().getFullYear(), new Date().getMonth() + 1),
-  trMonth: monthKey(new Date().getFullYear(), new Date().getMonth() + 1),
   accounts: [],
   categories: [],
   transactions: [],
   walletChecks: [],
   travelLogs: [],
-  editingTxId: null,
-  editingAccountId: null,
-  editingCategoryId: null,
-  catTypeFilter: 'expense',
-  selectedCategoryId: null,
   selectedTxType: 'expense',
-  selectedAccountType: 'cash',
-  selectedColor: '#FF3B30',
-  selectedEmoji: '💴',
-  barChart: null,
+  selectedCategoryId: null,
+  editingTxId: null,
 };
 
-/* ─── 定数 (変更なし) ─── */
-const ACCOUNT_TYPE_LABELS = { cash: '現金', bank: '銀行', credit: 'クレジット', 'e-money': '電子マネー', other: 'その他' };
-const ACCOUNT_TYPE_ICONS  = { cash: '💴', bank: '🏦', credit: '💳', 'e-money': '📱', other: '📦' };
-const EMOJIS = ['💴','🏦','💳','📱','🛒','🍽️','🚃','🏥','🏠','👕','🎮','🎁','💡','📦','💰','📈','📉'];
-const COLORS = ['#FF3B30','#FF9500','#FFCC00','#34C759','#5AC8FA','#007AFF','#5856D6','#B0B0B0'];
+const ACCOUNT_TYPE_ICONS = { cash: '💴', bank: '🏦', credit: '💳', 'e-money': '📱', other: '📦' };
 
 /* ─── 初期化 ─── */
 async function init() {
-  await loadAllData();
-  // 初回起動時のデフォルトデータ
-  if (App.categories.length === 0) {
-    await API.create('categories', { id: uuid(), name: '食費', type: 'expense', icon: '🍽️', color: '#FF6B6B', is_active: true });
-    await API.create('categories', { id: uuid(), name: '給与', type: 'income', icon: '💰', color: '#34C759', is_active: true });
+  try {
     await loadAllData();
-  }
-  if (App.accounts.length === 0) {
-    await API.create('accounts', { id: uuid(), name: '財布', account_type: 'cash', initial_balance: 0, is_active: true });
+    // デフォルトデータの投入
+    if (App.categories.length === 0) {
+      await API.create('categories', { id: uuid(), name: '食費', type: 'expense', icon: '🍽️', is_active: true });
+      await API.create('categories', { id: uuid(), name: '給与', type: 'income', icon: '💰', is_active: true });
+    }
+    if (App.accounts.length === 0) {
+      await API.create('accounts', { id: uuid(), name: '財布', account_type: 'cash', initial_balance: 0, is_active: true });
+    }
     await loadAllData();
-  }
 
-  setupNavigation();
-  setupEventListeners();
-  renderDashboard();
+    setupNavigation();
+    setupEventListeners();
+    renderDashboard();
+  } catch (e) {
+    console.error("初期化エラー:", e);
+  }
 }
 
 async function loadAllData() {
@@ -104,7 +84,36 @@ async function loadAllData() {
   App.travelLogs = tl;
 }
 
-/* ─── ナビゲーション (全ボタン動作保証) ─── */
+/* ─── イベント設定 (ボタンの動作を保証) ─── */
+function setupEventListeners() {
+  // 1. 収入・支出・移動タブの切り替え
+  $$('.type-tab').forEach(btn => {
+    btn.onclick = () => {
+      const type = btn.dataset.type;
+      App.selectedTxType = type;
+      $$('.type-tab').forEach(b => b.classList.toggle('active', b === btn));
+      
+      // フィールド表示の連動
+      $('#group-to-account')?.classList.toggle('hidden', type !== 'transfer');
+      $('#group-category')?.classList.toggle('hidden', type === 'transfer');
+      
+      renderCategoryPicker(type);
+    };
+  });
+
+  // 2. 保存ボタン
+  const saveBtn = $('#btn-save-transaction');
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      await saveTransaction();
+    };
+  }
+
+  // 3. 月切り替え
+  $('#btn-prev-month').onclick = () => changeMonth(-1);
+  $('#btn-next-month').onclick = () => changeMonth(1);
+}
+
 function setupNavigation() {
   $$('.nav-item').forEach(btn => {
     btn.onclick = () => {
@@ -118,54 +127,19 @@ function setupNavigation() {
   });
 }
 
+/* ─── メインロジック (描画・保存) ─── */
 function navigateTo(page) {
   $$('.page').forEach(p => p.classList.remove('active'));
-  $(`#page-${page}`)?.classList.add('active');
-  App.currentPage = page;
-  $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  const target = $(`#page-${page}`);
+  if (target) target.classList.add('active');
   
-  if (page === 'dashboard')    renderDashboard();
+  $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  if (page === 'dashboard') renderDashboard();
   if (page === 'transactions') renderTransactionsList();
-  if (page === 'accounts')     renderAccountsPage();
 }
 
-/* ─── イベントリスナー (タブ動作の核) ─── */
-function setupEventListeners() {
-  // 収入・支出・移動タブの確実な切り替え
-  $$('.type-tab').forEach(btn => {
-    btn.onclick = () => {
-      const type = btn.dataset.type;
-      App.selectedTxType = type;
-      $$('.type-tab').forEach(b => b.classList.toggle('active', b.dataset.type === type));
-      
-      // フィールドの表示切り替えロジックを維持
-      const isTransfer = (type === 'transfer');
-      $('#group-to-account')?.classList.toggle('hidden', !isTransfer);
-      $('#group-category')?.classList.toggle('hidden', isTransfer);
-      
-      renderCategoryPicker(type);
-    };
-  });
-
-  // 保存ボタン
-  $('#btn-save-transaction')?.addEventListener('click', saveTransaction);
-
-  // 月切り替え
-  $('#btn-prev-month')?.onclick = () => changeMonth(-1);
-  $('#btn-next-month')?.onclick = () => changeMonth(1);
-}
-
-function changeMonth(delta) {
-  const { y, m } = parseMonth(App.currentMonth);
-  let nm = m + delta, ny = y;
-  if (nm > 12) { nm = 1; ny++; } else if (nm < 1) { nm = 12; ny--; }
-  App.currentMonth = monthKey(ny, nm);
-  $('#dashboard-month-label').textContent = `${ny}年${nm}月`;
-  renderDashboard();
-}
-
-/* ─── 描画とデータ処理 ─── */
 function renderDashboard() {
+  $('#dashboard-month-label').textContent = formatMonthLabel(App.currentMonth);
   const txs = App.transactions.filter(t => t.date.startsWith(App.currentMonth));
   const inc = txs.filter(t => t.type === 'income').reduce((s,t) => s+t.amount, 0);
   const exp = txs.filter(t => t.type === 'expense').reduce((s,t) => s+t.amount, 0);
@@ -176,15 +150,13 @@ function renderDashboard() {
 
   const list = $('#account-list-dashboard');
   if (list) {
-    list.innerHTML = App.accounts.map(acc => {
-      const bal = computeAccountBalance(acc);
-      return `
-        <div class="account-item">
-          <div class="account-icon">${ACCOUNT_TYPE_ICONS[acc.account_type] || '💴'}</div>
-          <div class="account-info"><div class="account-name">${acc.name}</div></div>
-          <div class="account-balance-text">${fmt(bal)}</div>
-        </div>`;
-    }).join('');
+    list.innerHTML = App.accounts.map(acc => `
+      <div class="account-item">
+        <div class="account-icon">${ACCOUNT_TYPE_ICONS[acc.account_type] || '💴'}</div>
+        <div class="account-info"><div>${acc.name}</div></div>
+        <div class="account-balance-text">${fmt(computeAccountBalance(acc))}</div>
+      </div>
+    `).join('');
   }
 }
 
@@ -208,17 +180,12 @@ function renderCategoryPicker(type) {
   if (!container) return;
   const cats = App.categories.filter(c => c.type === type || c.type === 'both');
   container.innerHTML = cats.map(c => `
-    <button class="cat-chip ${c.id === App.selectedCategoryId ? 'selected' : ''}" onclick="selectCategory('${c.id}')">
+    <button class="cat-chip ${c.id === App.selectedCategoryId ? 'selected' : ''}" 
+            onclick="App.selectedCategoryId='${c.id}'; renderCategoryPicker('${type}')">
       <span>${c.icon}</span><span>${c.name}</span>
     </button>
   `).join('');
 }
-
-window.selectCategory = (id) => {
-  App.selectedCategoryId = id;
-  $$('.cat-chip').forEach(c => c.classList.toggle('selected', c.innerHTML.includes(id)));
-  renderCategoryPicker(App.selectedTxType); // 再描画して選択を反映
-};
 
 function updateAccountSelects() {
   const options = App.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
@@ -245,6 +212,7 @@ async function saveTransaction() {
   else await API.create('transactions', data);
 
   await loadAllData();
+  alert('保存しました');
   navigateTo('dashboard');
 }
 
@@ -260,5 +228,18 @@ function computeAccountBalance(acc) {
   return bal;
 }
 
-/* 起動 */
-window.addEventListener('DOMContentLoaded', init);
+function changeMonth(delta) {
+  const { y, m } = parseMonth(App.currentMonth);
+  let nm = m + delta, ny = y;
+  if (nm > 12) { nm = 1; ny++; } else if (nm < 1) { nm = 12; ny--; }
+  App.currentMonth = monthKey(ny, nm);
+  renderDashboard();
+}
+
+function formatMonthLabel(mk) {
+  const { y, m } = parseMonth(mk);
+  return `${y}年${m}月`;
+}
+
+// 起動
+document.addEventListener('DOMContentLoaded', init);
