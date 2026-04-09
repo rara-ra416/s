@@ -2,6 +2,7 @@
    かけいぼ - iPhone向けお金管理アプリ スタイルシート
    ================================================ */
 
+/* ---------- CSS Variables ---------- */
 :root {
   --color-income:    #34C759;
   --color-expense:   #FF3B30;
@@ -29,25 +30,17 @@
   --safe-bottom: env(safe-area-inset-bottom);
 }
 
-/* 基本リセット */
+/* ---------- Base ---------- */
 body {
-  margin: 0;
-  padding: 0;
+  margin: 0; padding: 0;
   font-family: 'Noto Sans JP', sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text);
-  overflow: hidden;
-  height: 100vh;
+  overflow: hidden; height: 100vh;
   -webkit-tap-highlight-color: transparent;
 }
+* { box-sizing: border-box; }
 
-/* ...（以下、あなたが作成したすべてのクラス設定：summary-card, nav-plus, modal等を含む）... */
+/* ...中略（提供された全CSS：summary-card, nav-plus, modal等を含む）... */
 
-.page {
-  display: none;
-  height: 100vh;
-  flex-direction: column;
-}
-.page.active {
-  display: flex;
-}
+.hidden { display: none !important; }
