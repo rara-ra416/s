@@ -195,7 +195,37 @@
           <!-- メモ -->
           <div class="form-group">
             <label class="form-label">メモ</label>
-            <input type="text" id="input-memo" class="form-input" placeholder="メモ">
+            <input type="text" id="input-memo" class="form-input" placeholder="任意メモ">
+          </div>
+
+          <!-- 移動記録追加 (支出のみ) -->
+          <div class="form-group" id="group-travel">
+            <label class="form-label toggle-label">
+              <span>移動記録を追加</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-travel">
+                <span class="toggle-slider"></span>
+              </label>
+            </label>
+            <div id="travel-input-area" class="travel-form hidden">
+              <div class="travel-row">
+                <input type="text" id="travel-from" class="form-input" placeholder="出発地">
+                <span class="travel-arrow">→</span>
+                <input type="text" id="travel-to" class="form-input" placeholder="目的地">
+              </div>
+              <div class="travel-row">
+                <select id="travel-transport" class="form-select">
+                  <option value="電車">🚃 電車</option>
+                  <option value="バス">🚌 バス</option>
+                  <option value="タクシー">🚕 タクシー</option>
+                  <option value="自転車">🚲 自転車</option>
+                  <option value="徒歩">🚶 徒歩</option>
+                  <option value="自動車">🚗 自動車</option>
+                  <option value="その他">🚀 その他</option>
+                </select>
+                <input type="text" id="travel-purpose" class="form-input" placeholder="目的（例：仕事）">
+              </div>
+            </div>
           </div>
 
           <!-- 削除ボタン (編集時のみ) -->
@@ -390,7 +420,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">メモ</label>
-          <input type="text" id="wc-memo" class="form-input" placeholder="メモ">
+          <input type="text" id="wc-memo" class="form-input" placeholder="任意メモ">
         </div>
       </div>
       <div class="modal-footer">
