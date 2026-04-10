@@ -10,7 +10,7 @@ const today = () => new Date().toISOString().split('T')[0];
 const monthKey = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
 const parseMonth = (s) => ({ y: parseInt(s.split('-')[0]), m: parseInt(s.split('-')[1]) });
 
-/* ─── API ラッパー (LocalStorage) ─── */
+/* ─── API ラッパー (LocalStorage版：GitHub Pages対応) ─── */
 const API = {
   _db(table) { return JSON.parse(localStorage.getItem(`kb_v3_${table}`) || '[]'); },
   _save(table, data) { localStorage.setItem(`kb_v3_${table}`, JSON.stringify(data)); },
@@ -52,12 +52,12 @@ const ACCOUNT_TYPE_ICONS = { cash: '💴', bank: '🏦', credit: '💳', 'e-mone
 async function init() {
   await loadAllData();
   
+  // 初期データがない場合の補填
   if (App.categories.length === 0) {
     await API.create('categories', { id: uuid(), name: '食費', type: 'expense', icon: '🍽️', is_active: true });
-    await API.create('categories', { id: uuid(), name: '給与', type: 'income', icon: '💰', is_active: true });
   }
   if (App.accounts.length === 0) {
-    await API.create('accounts', { id: uuid(), name: '財布', account_type: 'cash', initial_balance: 0, is_active: true });
+    await API.create('accounts', { id: uuid(), name: '財布', account_type: 'cash', initial_balance: 0, is_active: true, is_wallet: true });
   }
   await loadAllData();
 
@@ -75,20 +75,21 @@ async function loadAllData() {
   App.transactions = tx.sort((a,b) => b.date.localeCompare(a.date));
 }
 
-/* ─── イベント設定 ─── */
+/* ─── 全イベントの紐付け ─── */
 function setupEventListeners() {
-  // ★ 財布チェック：専用ページ (page-wallet-check) へ遷移 ★
-  $('#btn-wallet-check').onclick = () => navigateTo('wallet-check');
-  $('#btn-wallet-check-banner').onclick = () => navigateTo('wallet-check');
+  // 1. 財布チェック（モーダルを開く）
+  $('#btn-wallet-check').onclick = () => openWalletCheckModal();
+  $('#btn-wallet-check-banner').onclick = () => openWalletCheckModal();
+  
+  // 2. バックアップ（モーダルを開く）
+  $('#btn-backup').onclick = () => openModal('backup');
+  $('#btn-export-backup').onclick = exportData;
 
-  // バックアップ
-  $('#btn-backup').onclick = exportData;
-
-  // ダッシュボード内リンク
+  // 3. ダッシュボード内リンク
   $('#btn-go-accounts').onclick = () => navigateTo('accounts');
   $('#btn-go-transactions').onclick = () => navigateTo('transactions');
 
-  // 取引入力関連
+  // 4. 入力タブ切り替え
   $$('.type-tab').forEach(btn => {
     btn.onclick = () => {
       const type = btn.dataset.type;
@@ -100,23 +101,88 @@ function setupEventListeners() {
     };
   });
 
+  // 5. 保存・削除
   $('#btn-save-transaction').onclick = saveTransaction;
+  $('#btn-delete-transaction')?.addEventListener('click', deleteTransaction);
 
-  $('#toggle-travel')?.addEventListener('change', (e) => {
-    $('#travel-input-area')?.classList.toggle('hidden', !e.target.checked);
-  });
-
-  // 月切り替え
-  const monthNavs = [
+  // 6. 月切り替えナビ
+  const navs = [
     { p: '#btn-prev-month', n: '#btn-next-month' },
     { p: '#btn-prev-month-tx', n: '#btn-next-month-tx' },
     { p: '#btn-prev-month-rp', n: '#btn-next-month-rp' },
     { p: '#btn-prev-month-tr', n: '#btn-next-month-tr' }
   ];
-  monthNavs.forEach(nav => {
-    if ($(nav.p)) $(nav.p).onclick = () => changeMonth(-1);
-    if ($(nav.n)) $(nav.n).onclick = () => changeMonth(1);
+  navs.forEach(btn => {
+    if ($(btn.p)) $(btn.p).onclick = () => changeMonth(-1);
+    if ($(btn.n)) $(btn.n).onclick = () => changeMonth(1);
   });
+
+  // 7. モーダルを閉じるボタン共通
+  $$('.modal-close').forEach(btn => {
+    btn.onclick = () => closeModal(btn.dataset.modal);
+  });
+  
+  // 8. 財布チェックの入力連動
+  $('#wc-actual-amount')?.addEventListener('input', updateWCDiff);
+  $('#wc-account')?.addEventListener('change', updateWCDiff);
+  $('#btn-save-wallet-check')?.addEventListener('click', saveWalletCheck);
+}
+
+/* ─── 財布チェックモーダル処理 ─── */
+function openWalletCheckModal() {
+  const wallets = App.accounts.filter(a => a.is_wallet);
+  if (wallets.length === 0) { alert('財布チェック対象の口座がありません'); return; }
+  
+  const sel = $('#wc-account');
+  sel.innerHTML = wallets.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+  
+  $('#wc-actual-amount').value = '';
+  updateWCDiff();
+  openModal('wallet-check');
+}
+
+function updateWCDiff() {
+  const accId = $('#wc-account').value;
+  const acc = App.accounts.find(a => a.id === accId);
+  if (!acc) return;
+
+  const sysBal = computeAccountBalance(acc);
+  $('#wc-system-amount').textContent = fmt(sysBal);
+
+  const actualInput = $('#wc-actual-amount').value;
+  if (actualInput === '') { $('#wc-diff-display').classList.add('hidden'); return; }
+
+  const actual = parseInt(actualInput) || 0;
+  const diff = actual - sysBal;
+  $('#wc-diff-value').textContent = fmtSigned(diff);
+  $('#wc-diff-display').classList.remove('hidden');
+  
+  const typeEl = $('#wc-diff-type');
+  typeEl.textContent = diff > 0 ? '雑益として計上' : diff < 0 ? '雑損として計上' : '差額なし';
+}
+
+async function saveWalletCheck() {
+  const accId = $('#wc-account').value;
+  const actual = parseInt($('#wc-actual-amount').value) || 0;
+  const sysBal = computeAccountBalance(App.accounts.find(a => a.id === accId));
+  const diff = actual - sysBal;
+
+  if (diff !== 0) {
+    await API.create('transactions', {
+      id: uuid(),
+      type: diff > 0 ? 'income' : 'expense',
+      amount: Math.abs(diff),
+      account_id: accId,
+      category_id: null,
+      date: today(),
+      memo: '財布チェック調整: ' + $('#wc-memo').value
+    });
+  }
+  
+  await loadAllData();
+  closeModal('wallet-check');
+  renderDashboard();
+  alert('財布チェックを完了しました');
 }
 
 /* ─── ナビゲーション ─── */
@@ -128,39 +194,23 @@ function setupNavigation() {
       navigateTo(page);
     };
   });
-
   $$('[data-back]').forEach(btn => {
     btn.onclick = () => navigateTo(btn.dataset.back);
   });
 }
 
 function navigateTo(page) {
-  // すべてのセクション (.page) を非表示にし、対象の ID だけを表示する
   $$('.page').forEach(p => p.classList.remove('active'));
-  
-  // page-dashboard, page-transactions, page-wallet-check などを探す
   const target = $(`#page-${page}`);
   if (target) {
     target.classList.add('active');
     App.currentPage = page;
-  } else {
-    console.error(`ページ ID: page-${page} が HTML 内に見つかりません。`);
   }
-  
   $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
-
   if (page === 'dashboard') renderDashboard();
-  if (page === 'wallet-check') renderWalletCheckPage(); // 専用の描画関数を実行
 }
 
-/* ─── 財布チェック画面の描画 (補完) ─── */
-function renderWalletCheckPage() {
-  // ここに、帳簿上の金額と実際の金額を比較するロジックを記述します
-  // 現時点では画面を表示する処理を優先しています
-  console.log("財布チェック画面を表示しました。");
-}
-
-/* ─── 描画処理 (ダッシュボード等) ─── */
+/* ─── 描画とデータ処理 ─── */
 function renderDashboard() {
   const { y, m } = parseMonth(App.currentMonth);
   if ($('#dashboard-month-label')) $('#dashboard-month-label').textContent = `${y}年${m}月`;
@@ -229,7 +279,6 @@ function updateAccountSelects() {
 async function saveTransaction() {
   const amount = parseInt($('#input-amount').value);
   if (!amount) { alert('金額を入力してください'); return; }
-
   const data = {
     id: App.editingTxId || uuid(),
     type: App.selectedTxType,
@@ -240,13 +289,19 @@ async function saveTransaction() {
     date: $('#input-date').value,
     memo: $('#input-memo').value
   };
-
   if (App.editingTxId) await API.update('transactions', App.editingTxId, data);
   else await API.create('transactions', data);
-
   await loadAllData();
-  alert('保存しました');
   navigateTo('dashboard');
+}
+
+async function deleteTransaction() {
+  if (!App.editingTxId) return;
+  if (confirm('この取引を削除しますか？')) {
+    await API.delete('transactions', App.editingTxId);
+    await loadAllData();
+    navigateTo('dashboard');
+  }
 }
 
 function changeMonth(delta) {
@@ -254,24 +309,22 @@ function changeMonth(delta) {
   let nm = m + delta, ny = y;
   if (nm > 12) { nm = 1; ny++; } else if (nm < 1) { nm = 12; ny--; }
   App.currentMonth = monthKey(ny, nm);
-  
-  const labels = ['#dashboard-month-label', '#tx-month-label', '#rp-month-label', '#tr-month-label'];
-  labels.forEach(sel => { if($(sel)) $(sel).textContent = `${ny}年${nm}月`; });
-
+  const label = `${ny}年${nm}月`;
+  ['#dashboard-month-label', '#tx-month-label', '#rp-month-label', '#tr-month-label'].forEach(id => {
+    if ($(id)) $(id).textContent = label;
+  });
   navigateTo(App.currentPage);
 }
 
+function openModal(name) { $(`#modal-${name}`).classList.remove('hidden'); }
+function closeModal(name) { $(`#modal-${name}`).classList.add('hidden'); }
+
 function exportData() {
-  const data = {
-    transactions: API._db('transactions'),
-    accounts: API._db('accounts'),
-    categories: API._db('categories')
-  };
+  const data = { transactions: API._db('transactions'), accounts: API._db('accounts'), categories: API._db('categories') };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = `backup_${today()}.json`;
+  a.href = URL.createObjectURL(blob);
+  a.download = `kakeibo_backup_${today()}.json`;
   a.click();
 }
 
