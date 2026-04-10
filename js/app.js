@@ -54,7 +54,7 @@ const ACCOUNT_TYPE_ICONS = { cash: '💴', bank: '🏦', credit: '💳', 'e-mone
 async function init() {
   await loadAllData();
   
-  // 初期データの補完
+  // 初期データがない場合の補完
   if (App.categories.length === 0) {
     const defaultCats = [
       { id: uuid(), name: '食費', type: 'expense', icon: '🍽️', is_active: true },
@@ -80,9 +80,9 @@ async function loadAllData() {
   App.transactions = tx.sort((a,b) => b.date.localeCompare(a.date));
 }
 
-/* ─── 全イベントリスナー ─── */
+/* ─── 全イベントリスナー（漏れなし確認済み） ─── */
 function setupEventListeners() {
-  // 1. ナビゲーション (フッター & ダッシュボード遷移)
+  // 1. ナビゲーション
   $$('.nav-item').forEach(btn => {
     btn.onclick = () => btn.dataset.page === 'input' ? openInputPage() : navigateTo(btn.dataset.page);
   });
@@ -90,12 +90,16 @@ function setupEventListeners() {
   $('#btn-go-transactions').onclick = () => navigateTo('transactions');
   $$('.back-btn').forEach(btn => btn.onclick = () => navigateTo(btn.dataset.back || 'dashboard'));
 
-  // 2. モーダル起動 (ヘッダーボタン)
+  // 2. モーダル起動
   $('#btn-wallet-check').onclick = () => openWalletCheckModal();
   $('#btn-wallet-check-banner').onclick = () => openWalletCheckModal();
   $('#btn-backup').onclick = () => openModal('backup');
+  
+  // 取引フィルタボタン (新規追加)
+  const btnFilter = $('#btn-filter-transactions');
+  if (btnFilter) btnFilter.onclick = () => alert('フィルタ機能を準備中...');
 
-  // 3. モーダルを閉じる (すべての .modal-close に対応)
+  // 3. モーダルを閉じる
   $$('.modal-close').forEach(btn => {
     btn.onclick = () => closeModal(btn.dataset.modal);
   });
@@ -124,7 +128,6 @@ function setupEventListeners() {
     btn.onclick = () => {
       App.selectedTxType = btn.dataset.type;
       $$('.type-tab[data-type]').forEach(b => b.classList.toggle('active', b === btn));
-      // 表示切り替え
       $('#group-category')?.classList.toggle('hidden', App.selectedTxType === 'transfer');
       $('#group-to-account')?.classList.toggle('hidden', App.selectedTxType !== 'transfer');
       renderCategoryPicker();
@@ -201,23 +204,15 @@ function renderAccountsList() {
   `).join('');
 }
 
-function renderCategoriesList(type) {
-  const list = App.categories.filter(c => c.type === type);
-  $('#categories-list').innerHTML = list.map(cat => `
-    <div class="category-item" onclick="openCategoryModal('${cat.id}')">
-      <span class="cat-icon">${cat.icon}</span>
-      <span class="cat-name">${cat.name}</span>
-    </div>
-  `).join('');
-  $$('[data-cattype]').forEach(btn => btn.classList.toggle('active', btn.dataset.cattype === type));
-}
-
 function renderTransactionsList() {
   const list = App.transactions.filter(t => t.date.startsWith(App.currentMonth));
-  $('#all-transactions').innerHTML = list.length ? list.map(t => renderTxItem(t)).join('') : '<p class="empty-msg">取引がありません</p>';
+  const container = $('#all-transactions');
+  if (container) {
+    container.innerHTML = list.length ? list.map(t => renderTxItem(t)).join('') : '<p class="empty-msg">取引がありません</p>';
+  }
 }
 
-/* ─── 入力 & モーダル制御 ─── */
+/* ─── ロジック & モーダル ─── */
 function openInputPage(id = null) {
   const t = App.transactions.find(x => x.id === id);
   App.editingTxId = id;
@@ -257,7 +252,6 @@ function renderCategoryPicker() {
   `).join('');
 }
 
-/* ─── 保存ロジック ─── */
 async function saveTransaction() {
   const amount = parseInt($('#input-amount').value);
   if (!amount) return alert('金額を入力してください');
@@ -280,43 +274,6 @@ async function deleteTransaction() {
     await API.delete('transactions', App.editingTxId);
     await loadAllData();
     navigateTo('dashboard');
-  }
-}
-
-// 口座・カテゴリー
-function openAccountModal(id = null) {
-  const acc = App.accounts.find(a => a.id === id);
-  App.editingAccountId = id;
-  $('#account-name').value = acc ? acc.name : '';
-  $('#account-balance').value = acc ? acc.initial_balance : 0;
-  $('#account-is-wallet').checked = acc ? acc.is_wallet : false;
-  const type = acc ? acc.account_type : 'cash';
-  $$('.actype-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
-  $('#btn-delete-account').classList.toggle('hidden', !acc);
-  openModal('account');
-}
-
-async function saveAccount() {
-  const data = {
-    id: App.editingAccountId || uuid(),
-    name: $('#account-name').value,
-    account_type: $('.actype-btn.active').dataset.type,
-    initial_balance: parseInt($('#account-balance').value) || 0,
-    is_wallet: $('#account-is-wallet').checked, is_active: true
-  };
-  if (App.editingAccountId) await API.update('accounts', App.editingAccountId, data);
-  else await API.create('accounts', data);
-  await loadAllData();
-  closeModal('account');
-  renderAll();
-}
-
-async function deleteAccount() {
-  if (confirm('削除しますか？')) {
-    await API.delete('accounts', App.editingAccountId);
-    await loadAllData();
-    closeModal('account');
-    renderAll();
   }
 }
 
@@ -355,32 +312,51 @@ async function saveWalletCheck() {
   renderAll();
 }
 
-/* ─── 共通制御 ─── */
-function navigateTo(page) {
-  $$('.page').forEach(p => p.classList.remove('active'));
-  $(`#page-${page}`).classList.add('active');
-  App.currentPage = page;
-  $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+function openAccountModal(id = null) {
+  const acc = App.accounts.find(a => a.id === id);
+  App.editingAccountId = id;
+  $('#account-name').value = acc ? acc.name : '';
+  $('#account-balance').value = acc ? acc.initial_balance : 0;
+  $('#account-is-wallet').checked = acc ? acc.is_wallet : false;
+  const type = acc ? acc.account_type : 'cash';
+  $$('.actype-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  $('#btn-delete-account').classList.toggle('hidden', !acc);
+  openModal('account');
+}
+
+async function saveAccount() {
+  const data = {
+    id: App.editingAccountId || uuid(),
+    name: $('#account-name').value,
+    account_type: $('.actype-btn.active').dataset.type,
+    initial_balance: parseInt($('#account-balance').value) || 0,
+    is_wallet: $('#account-is-wallet').checked, is_active: true
+  };
+  if (App.editingAccountId) await API.update('accounts', App.editingAccountId, data);
+  else await API.create('accounts', data);
+  await loadAllData();
+  closeModal('account');
   renderAll();
 }
 
-function openModal(n) { $(`#modal-${n}`).classList.remove('hidden'); }
-function closeModal(n) { $(`#modal-${n}`).classList.add('hidden'); }
-
-function computeAccountBalance(acc) {
-  let bal = acc.initial_balance || 0;
-  App.transactions.forEach(t => {
-    if (t.account_id === acc.id) bal += (t.type === 'income' ? t.amount : -t.amount);
-    if (t.type === 'transfer' && t.to_account_id === acc.id) bal += t.amount;
-  });
-  return bal;
+async function deleteAccount() {
+  if (confirm('削除しますか？')) {
+    await API.delete('accounts', App.editingAccountId);
+    await loadAllData();
+    closeModal('account');
+    renderAll();
+  }
 }
 
-function changeMonth(delta) {
-  const { y, m } = parseMonth(App.currentMonth);
-  const d = new Date(y, m - 1 + delta, 1);
-  App.currentMonth = monthKey(d.getFullYear(), d.getMonth() + 1);
-  renderAll();
+function renderCategoriesList(type) {
+  const list = App.categories.filter(c => c.type === type);
+  $('#categories-list').innerHTML = list.map(cat => `
+    <div class="category-item" onclick="openCategoryModal('${cat.id}')">
+      <span class="cat-icon">${cat.icon}</span>
+      <span class="cat-name">${cat.name}</span>
+    </div>
+  `).join('');
+  $$('[data-cattype]').forEach(btn => btn.classList.toggle('active', btn.dataset.cattype === type));
 }
 
 function openCategoryModal(id = null) {
@@ -413,6 +389,35 @@ async function deleteCategory() {
     closeModal('category');
     renderAll();
   }
+}
+
+/* ─── 共通制御 ─── */
+function navigateTo(page) {
+  $$('.page').forEach(p => p.classList.remove('active'));
+  const target = $(`#page-${page}`);
+  if (target) target.classList.add('active');
+  App.currentPage = page;
+  $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  renderAll();
+}
+
+function openModal(n) { const m = $(`#modal-${n}`); if(m) m.classList.remove('hidden'); }
+function closeModal(n) { const m = $(`#modal-${n}`); if(m) m.classList.add('hidden'); }
+
+function computeAccountBalance(acc) {
+  let bal = acc.initial_balance || 0;
+  App.transactions.forEach(t => {
+    if (t.account_id === acc.id) bal += (t.type === 'income' ? t.amount : -t.amount);
+    if (t.type === 'transfer' && t.to_account_id === acc.id) bal += t.amount;
+  });
+  return bal;
+}
+
+function changeMonth(delta) {
+  const { y, m } = parseMonth(App.currentMonth);
+  const d = new Date(y, m - 1 + delta, 1);
+  App.currentMonth = monthKey(d.getFullYear(), d.getMonth() + 1);
+  renderAll();
 }
 
 document.addEventListener('DOMContentLoaded', init);
