@@ -86,6 +86,37 @@ async function loadAllData() {
 
 /* ─── イベント設定 ─── */
 function setupEventListeners() {
+  /* ─── ヘッダーアクションの紐付け ─── */
+
+// 1. 財布チェックボタン
+$('#btn-wallet-check').onclick = () => {
+  // あなたのコードにある「財布チェックページ」への遷移
+  navigateTo('wallet-check'); 
+};
+
+// 2. バックアップボタン (データの書き出し)
+$('#btn-backup').onclick = () => {
+  // 保存されている全データを一つのオブジェクトにまとめる
+  const backupData = {
+    transactions: API._db('transactions'),
+    accounts: API._db('accounts'),
+    categories: API._db('categories'),
+    wallet_checks: API._db('wallet_checks'),
+    travel_logs: API._db('travel_logs'),
+    exportedAt: new Date().toISOString()
+  };
+
+  // JSONファイルとしてダウンロードさせる処理
+  const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `kakeibo_backup_${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  alert('バックアップファイルを作成しました。');
+};
   // 収入・支出・移動タブ切り替え
   $$('.type-tab').forEach(btn => {
     btn.onclick = () => {
