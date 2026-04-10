@@ -1,6 +1,6 @@
 'use strict';
 
-/* ─── ユーティリティ (変更なし) ─── */
+/* ─── ユーティリティ ─── */
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 const uuid = () => crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -10,7 +10,7 @@ const today = () => new Date().toISOString().split('T')[0];
 const monthKey = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
 const parseMonth = (s) => ({ y: parseInt(s.split('-')[0]), m: parseInt(s.split('-')[1]) });
 
-/* ─── API ラッパー (LocalStorage版：GitHubで動作させるために必要) ─── */
+/* ─── API ラッパー (LocalStorage) ─── */
 const API = {
   _db(table) { return JSON.parse(localStorage.getItem(`kb_v3_${table}`) || '[]'); },
   _save(table, data) { localStorage.setItem(`kb_v3_${table}`, JSON.stringify(data)); },
@@ -34,19 +34,13 @@ const API = {
   }
 };
 
-/* ─── アプリ状態 (あなたの完成版から全ての変数を維持) ─── */
+/* ─── アプリ状態 ─── */
 const App = {
   currentPage: 'dashboard',
   currentMonth: monthKey(new Date().getFullYear(), new Date().getMonth() + 1),
-  txMonth: monthKey(new Date().getFullYear(), new Date().getMonth() + 1),
-  rpMonth: monthKey(new Date().getFullYear(), new Date().getMonth() + 1),
-  trMonth: monthKey(new Date().getFullYear(), new Date().getMonth() + 1),
   accounts: [],
   categories: [],
   transactions: [],
-  walletChecks: [],
-  travelLogs: [],
-  editingTxId: null,
   selectedTxType: 'expense',
   selectedCategoryId: null,
 };
@@ -57,7 +51,7 @@ const ACCOUNT_TYPE_ICONS = { cash: '💴', bank: '🏦', credit: '💳', 'e-mone
 async function init() {
   await loadAllData();
   
-  // 初期データ投入
+  // 初期データがない場合の補填
   if (App.categories.length === 0) {
     await API.create('categories', { id: uuid(), name: '食費', type: 'expense', icon: '🍽️', is_active: true });
     await API.create('categories', { id: uuid(), name: '給与', type: 'income', icon: '💰', is_active: true });
@@ -73,81 +67,59 @@ async function init() {
 }
 
 async function loadAllData() {
-  const [acc, cat, tx, wc, tl] = await Promise.all([
-    API.list('accounts'), API.list('categories'), API.list('transactions'),
-    API.list('wallet_checks'), API.list('travel_logs')
+  const [acc, cat, tx] = await Promise.all([
+    API.list('accounts'), API.list('categories'), API.list('transactions')
   ]);
   App.accounts = acc.filter(a => a.is_active);
   App.categories = cat.filter(c => c.is_active);
   App.transactions = tx.sort((a,b) => b.date.localeCompare(a.date));
-  App.walletChecks = wc;
-  App.travelLogs = tl;
 }
 
-/* ─── イベント設定 ─── */
+/* ─── イベント設定 (全てのボタンを動くように紐付け) ─── */
 function setupEventListeners() {
-  /* ─── ヘッダーアクションの紐付け ─── */
-
-// 1. 財布チェックボタン
-$('#btn-wallet-check').onclick = () => {
-  // あなたのコードにある「財布チェックページ」への遷移
-  navigateTo('wallet-check'); 
-};
-
-// 2. バックアップボタン (データの書き出し)
-$('#btn-backup').onclick = () => {
-  // 保存されている全データを一つのオブジェクトにまとめる
-  const backupData = {
-    transactions: API._db('transactions'),
-    accounts: API._db('accounts'),
-    categories: API._db('categories'),
-    wallet_checks: API._db('wallet_checks'),
-    travel_logs: API._db('travel_logs'),
-    exportedAt: new Date().toISOString()
-  };
-
-  // JSONファイルとしてダウンロードさせる処理
-  const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `kakeibo_backup_${today()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  // 1. ダッシュボード内の「管理 →」や「すべて →」ボタン
+  $('#btn-go-accounts').onclick = () => navigateTo('accounts');
+  $('#btn-go-transactions').onclick = () => navigateTo('transactions');
   
-  alert('バックアップファイルを作成しました。');
-};
-  // 収入・支出・移動タブ切り替え
+  // 2. ヘッダーの財布チェックとバックアップ
+  $('#btn-wallet-check').onclick = () => navigateTo('report'); // レポート内の履歴へ
+  $('#btn-backup').onclick = exportData;
+
+  // 3. 入力画面のタブ切り替え
   $$('.type-tab').forEach(btn => {
     btn.onclick = () => {
-      const type = btn.dataset.type;
-      App.selectedTxType = type;
-      $$('.type-tab').forEach(b => b.classList.toggle('active', b === btn));
-      $('#group-to-account')?.classList.toggle('hidden', type !== 'transfer');
-      $('#group-category')?.classList.toggle('hidden', type === 'transfer');
-      renderCategoryPicker(type);
+      if (btn.dataset.type) {
+        const type = btn.dataset.type;
+        App.selectedTxType = type;
+        $$('.type-tab').forEach(b => b.classList.toggle('active', b === btn));
+        $('#group-to-account')?.classList.toggle('hidden', type !== 'transfer');
+        $('#group-category')?.classList.toggle('hidden', type === 'transfer');
+        renderCategoryPicker(type);
+      }
     };
   });
 
-  // 保存ボタン
-  $('#btn-save-transaction')?.addEventListener('click', saveTransaction);
+  // 4. 保存ボタン
+  $('#btn-save-transaction').onclick = saveTransaction;
 
-  // ★ 154行目付近のエラー箇所を修正済み ★
-  $('#btn-prev-month').onclick = () => changeMonth(-1);
-  $('#btn-next-month').onclick = () => changeMonth(1);
+  // 5. 各ページの月切り替え
+  const monthBtns = [
+    { id: '#btn-prev-month', delta: -1 }, { id: '#btn-next-month', delta: 1 },
+    { id: '#btn-prev-month-tx', delta: -1 }, { id: '#btn-next-month-tx', delta: 1 },
+    { id: '#btn-prev-month-rp', delta: -1 }, { id: '#btn-next-month-rp', delta: 1 }
+  ];
+  monthBtns.forEach(conf => {
+    const el = $(conf.id);
+    if (el) el.onclick = () => changeMonth(conf.delta);
+  });
+
+  // 6. 入力画面の「移動記録を追加」トグル
+  $('#toggle-travel')?.addEventListener('change', (e) => {
+    $('#travel-input-area')?.classList.toggle('hidden', !e.target.checked);
+  });
 }
 
-function changeMonth(delta) {
-  const { y, m } = parseMonth(App.currentMonth);
-  let nm = m + delta, ny = y;
-  if (nm > 12) { nm = 1; ny++; } else if (nm < 1) { nm = 12; ny--; }
-  
-  // 代入の左辺を正しく修正
-  App.currentMonth = monthKey(ny, nm); 
-  
-  renderDashboard();
-}
-
+/* ─── ナビゲーション (ページ切り替えの核) ─── */
 function setupNavigation() {
   $$('.nav-item').forEach(btn => {
     btn.onclick = () => {
@@ -156,6 +128,7 @@ function setupNavigation() {
       navigateTo(page);
     };
   });
+  // 戻るボタン
   $$('[data-back]').forEach(btn => {
     btn.onclick = () => navigateTo(btn.dataset.back);
   });
@@ -163,23 +136,35 @@ function setupNavigation() {
 
 function navigateTo(page) {
   $$('.page').forEach(p => p.classList.remove('active'));
-  $(`#page-${page}`)?.classList.add('active');
+  const target = $(`#page-${page}`);
+  if (target) {
+    target.classList.add('active');
+    App.currentPage = page;
+  }
+  
+  // 下部ナビの連動
   $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+
+  // ページごとの再描画
   if (page === 'dashboard') renderDashboard();
+  if (page === 'transactions') renderTransactionsList();
+  if (page === 'accounts') renderAccountsPage();
+  if (page === 'categories') renderCategoriesPage();
 }
 
-/* ─── 描画とデータ保存 (ロジックはあなたのものを維持) ─── */
+/* ─── 描画ロジック ─── */
 function renderDashboard() {
+  const label = $('#dashboard-month-label');
   const { y, m } = parseMonth(App.currentMonth);
-  if ($('#dashboard-month-label')) $('#dashboard-month-label').textContent = `${y}年${m}月`;
+  if (label) label.textContent = `${y}年${m}月`;
 
   const txs = App.transactions.filter(t => t.date.startsWith(App.currentMonth));
   const inc = txs.filter(t => t.type === 'income').reduce((s,t) => s+t.amount, 0);
   const exp = txs.filter(t => t.type === 'expense').reduce((s,t) => s+t.amount, 0);
 
-  if ($('#summary-income')) $('#summary-income').textContent = fmt(inc);
-  if ($('#summary-expense')) $('#summary-expense').textContent = fmt(exp);
-  if ($('#summary-balance')) $('#summary-balance').textContent = fmtSigned(inc - exp);
+  $('#summary-income').textContent = fmt(inc);
+  $('#summary-expense').textContent = fmt(exp);
+  $('#summary-balance').textContent = fmtSigned(inc - exp);
 
   const list = $('#account-list-dashboard');
   if (list) {
@@ -211,7 +196,8 @@ function openInputPage(tx) {
   App.selectedTxType = type;
   $('#input-amount').value = tx?.amount || '';
   $('#input-date').value = tx?.date || today();
-  $$('.type-tab').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  $('#input-memo').value = tx?.memo || '';
+  
   updateAccountSelects();
   renderCategoryPicker(type);
   navigateTo('input');
@@ -256,6 +242,29 @@ async function saveTransaction() {
   await loadAllData();
   alert('保存しました');
   navigateTo('dashboard');
+}
+
+function changeMonth(delta) {
+  const { y, m } = parseMonth(App.currentMonth);
+  let nm = m + delta, ny = y;
+  if (nm > 12) { nm = 1; ny++; } else if (nm < 1) { nm = 12; ny--; }
+  App.currentMonth = monthKey(ny, nm);
+  
+  // 全てのページの月ラベルを同期
+  const labels = ['#dashboard-month-label', '#tx-month-label', '#rp-month-label', '#tr-month-label'];
+  labels.forEach(sel => { if($(sel)) $(sel).textContent = `${ny}年${nm}月`; });
+
+  navigateTo(App.currentPage);
+}
+
+function exportData() {
+  const data = localStorage.getItem('kb_v3_transactions');
+  const blob = new Blob([data], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `kakeibo_data_${today()}.json`;
+  a.click();
 }
 
 document.addEventListener('DOMContentLoaded', init);
