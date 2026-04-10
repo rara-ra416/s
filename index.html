@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ミニマル家計簿 v3</title>
+    <title>家計簿アプリ v3</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="dark-theme">
 
     <main id="app">
-        
         <section id="page-dashboard" class="page active">
             <header class="app-header">
                 <div class="month-nav">
@@ -22,18 +21,9 @@
             </header>
 
             <div class="summary-card">
-                <div class="summary-item">
-                    <span>収入</span>
-                    <div id="summary-income" class="amount income">¥0</div>
-                </div>
-                <div class="summary-item">
-                    <span>支出</span>
-                    <div id="summary-expense" class="amount expense">¥0</div>
-                </div>
-                <div class="summary-total">
-                    <span>今月の収支</span>
-                    <div id="summary-balance" class="amount">¥0</div>
-                </div>
+                <div class="summary-item"><span>収入</span><div id="summary-income" class="amount income">0円</div></div>
+                <div class="summary-item"><span>支出</span><div id="summary-expense" class="amount expense">0円</div></div>
+                <div class="summary-total"><span>今月の収支</span><div id="summary-balance" class="amount">0円</div></div>
             </div>
 
             <div class="section-header">
@@ -87,15 +77,13 @@
                 <button id="btn-add-account" class="icon-btn">＋</button>
             </header>
             <div id="accounts-list" class="list-container"></div>
-            <div class="info-box">
-                <button id="btn-wallet-check" class="btn-primary">財布チェックを実行</button>
-            </div>
+            <button id="btn-wallet-check" class="btn-primary mt-20">財布チェックを実行</button>
         </section>
 
         <section id="page-categories" class="page">
             <header class="app-header">
                 <button class="back-btn" data-back="input">＜</button>
-                <h2>カテゴリー管理</h2>
+                <h2>カテゴリー編集</h2>
                 <button id="btn-add-category" class="icon-btn">＋</button>
             </header>
             <div id="categories-list" class="list-container"></div>
@@ -142,20 +130,7 @@
 
                 <div class="input-group">
                     <label>メモ</label>
-                    <input type="text" id="input-memo" placeholder="（未入力でも可）">
-                </div>
-
-                <div class="input-group hidden" id="group-travel">
-                    <div class="toggle-row">
-                        <label>移動記録として保存</label>
-                        <input type="checkbox" id="toggle-travel">
-                    </div>
-                    <div id="travel-input-area" class="hidden">
-                        <input type="text" id="travel-from" placeholder="出発地">
-                        <input type="text" id="travel-to" placeholder="目的地">
-                        <input type="text" id="travel-transport" placeholder="交通手段">
-                        <input type="text" id="travel-purpose" placeholder="目的">
-                    </div>
+                    <input type="text" id="input-memo" placeholder="メモを入力">
                 </div>
 
                 <div class="button-row">
@@ -167,123 +142,38 @@
             </div>
         </section>
 
-        <section id="page-report" class="page">
-            <header class="app-header">
-                <div class="month-nav">
-                    <button id="btn-prev-month-rp">＜</button>
-                    <h2 class="month-label">2026年4月</h2>
-                    <button id="btn-next-month-rp">＞</button>
-                </div>
-            </header>
-            <div class="report-summary">
-                <div class="rep-card income">収入: <span id="rp-income">0円</span></div>
-                <div class="rep-card expense">支出: <span id="rp-expense">0円</span></div>
-                <div class="rep-card total">収支: <span id="rp-balance">0円</span></div>
-            </div>
-            <div class="chart-container">
-                <canvas id="monthly-bar-chart"></canvas>
-            </div>
-        </section>
-
-        <section id="page-travel" class="page">
-            <header class="app-header">
-                <div class="month-nav">
-                    <button id="btn-prev-month-tr">＜</button>
-                    <h2 class="month-label">2026年4月</h2>
-                    <button id="btn-next-month-tr">＞</button>
-                </div>
-            </header>
-            <div id="travel-logs-list" class="list-container"></div>
-        </section>
-
-    </main>
-
-    <div id="modal-account" class="modal hidden">
-        <div class="modal-content">
-            <h3>口座の編集</h3>
-            <div class="input-group">
-                <label>口座名</label>
-                <input type="text" id="account-name">
-            </div>
-            <div class="input-group">
-                <label>タイプ</label>
-                <div class="actype-grid">
-                    <button class="actype-btn" data-type="cash">現金</button>
-                    <button class="actype-btn" data-type="bank">銀行</button>
-                    <button class="actype-btn" data-type="credit">カード</button>
-                    <button class="actype-btn" data-type="e-money">スマホ</button>
-                </div>
-            </div>
-            <div class="input-group">
-                <label>初期残高</label>
-                <input type="number" id="account-balance">
-            </div>
-            <div class="input-group checkbox-row">
-                <input type="checkbox" id="account-is-wallet">
-                <label for="account-is-wallet">「財布」として扱う</label>
-            </div>
-            <div class="button-row">
-                <button id="btn-save-account" class="btn-primary">保存</button>
-                <button class="modal-close btn-secondary" data-modal="account">閉じる</button>
-            </div>
-            <div id="account-delete-group" class="hidden">
-                <button id="btn-delete-account" class="btn-danger">削除</button>
-            </div>
-        </div>
-    </div>
+        </main>
 
     <div id="modal-category" class="modal hidden">
         <div class="modal-content">
             <h3>カテゴリー編集</h3>
-            <input type="text" id="category-name" placeholder="名前">
-            <input type="text" id="category-icon" placeholder="アイコン(絵文字)">
-            <select id="category-type">
-                <option value="expense">支出</option>
-                <option value="income">収入</option>
-                <option value="both">共通</option>
-            </select>
-            <input type="color" id="category-color" value="#495057">
+            <div class="input-group">
+                <label>名前</label>
+                <input type="text" id="category-name">
+            </div>
+            <div class="input-group">
+                <label>アイコン</label>
+                <input type="text" id="category-icon">
+            </div>
+            <div class="input-group">
+                <label>種類</label>
+                <select id="category-type">
+                    <option value="expense">支出</option>
+                    <option value="income">収入</option>
+                    <option value="both">共通</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>色</label>
+                <input type="color" id="category-color" value="#4dabf7">
+            </div>
             <div class="button-row">
                 <button id="btn-save-category" class="btn-primary">保存</button>
                 <button class="modal-close btn-secondary" data-modal="category">閉じる</button>
             </div>
             <div id="category-delete-group" class="hidden">
-                <button id="btn-delete-category" class="btn-danger">削除</button>
+                <button id="btn-delete-category" class="btn-danger">このカテゴリーを削除</button>
             </div>
-        </div>
-    </div>
-
-    <div id="modal-wallet-check" class="modal hidden">
-        <div class="modal-content">
-            <h3>財布残高チェック</h3>
-            <div class="input-group">
-                <label>対象の財布</label>
-                <select id="wc-account"></select>
-            </div>
-            <p>システム上の残高: <strong id="wc-system-amount">¥0</strong></p>
-            <div class="input-group">
-                <label>実際の所持金</label>
-                <input type="number" id="wc-actual-amount" placeholder="今の金額を入力">
-            </div>
-            <div id="wc-diff-display" class="hidden info-box">
-                差額: <span id="wc-diff-value">¥0</span>
-                <p><small>※保存すると差額が自動入力されます</small></p>
-            </div>
-            <div class="button-row">
-                <button id="btn-confirm-wallet-check" class="btn-primary">確定して調整</button>
-                <button class="modal-close btn-secondary" data-modal="wallet-check">閉じる</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-backup" class="modal hidden">
-        <div class="modal-content">
-            <h3>データ管理</h3>
-            <button id="btn-export-backup" class="btn-block">データをエクスポート (JSON)</button>
-            <div class="divider"></div>
-            <p>データをインポート</p>
-            <input type="file" id="import-file" accept=".json">
-            <button class="modal-close btn-secondary btn-block" data-modal="backup">閉じる</button>
         </div>
     </div>
 
