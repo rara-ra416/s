@@ -1,136 +1,74 @@
-/* ─── 基本設定 ─── */
 :root {
-    --bg-color: #1a1a1a;
-    --card-bg: #2d2d2d;
-    --text-main: #f8f9fa;
-    --text-sub: #adb5bd;
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --header-bg: #2a2a2a;
+    --text-main: #ffffff;
+    --text-sub: #b0b0b0;
     --accent: #4dabf7;
     --income: #51cf66;
     --expense: #ff6b6b;
-    --border: #3d3d3d;
+    --border: #333333;
 }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body {
-    margin: 0; padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-main);
-    user-select: none;
-    line-height: 1.4;
+    margin: 0; font-family: sans-serif;
+    background-color: var(--bg-color); color: var(--text-main);
+    overflow-x: hidden;
 }
 
-h2, h3 { margin: 0; }
-button { border: none; background: none; color: inherit; cursor: pointer; }
-input, select { 
-    background: var(--card-bg); color: var(--text-main); 
-    border: 1px solid var(--border); border-radius: 8px; padding: 12px;
-}
 .hidden { display: none !important; }
 
-/* ─── ページ管理 ─── */
-.page {
-    display: none;
-    padding: 16px 16px 80px 16px;
-    max-width: 600px; margin: 0 auto;
-    animation: fadeIn 0.2s ease-out;
-}
+/* ページ制御 */
+.page { display: none; padding: 10px 15px 80px; max-width: 500px; margin: 0 auto; }
 .page.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* ─── ヘッダー ─── */
-.app-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding-bottom: 20px;
-}
-.month-nav { display: flex; align-items: center; gap: 15px; }
-.month-label { font-size: 1.1rem; font-weight: bold; }
-.icon-btn { font-size: 1.5rem; }
+/* ヘッダー */
+.app-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+.month-nav { display: flex; align-items: center; gap: 20px; font-weight: bold; }
 
-/* ─── カード & サマリー ─── */
+/* カード類 */
 .summary-card {
-    background: var(--card-bg);
-    border-radius: 16px; padding: 20px;
-    margin-bottom: 20px;
+    background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px;
 }
-.summary-item { display: flex; justify-content: space-between; margin-bottom: 10px; }
-.summary-total { border-top: 1px solid var(--border); padding-top: 10px; font-weight: bold; }
-.amount { font-size: 1.3rem; }
-.amount.income { color: var(--income); }
-.amount.expense { color: var(--expense); }
+.summary-item { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.summary-total { border-top: 1px solid var(--border); padding-top: 10px; font-weight: bold; font-size: 1.1rem; }
 
-/* ─── リスト ─── */
-.section-header { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px; }
-.text-link { color: var(--accent); font-size: 0.9rem; }
-
-.list-container {
-    background: var(--card-bg); border-radius: 12px; overflow: hidden;
-}
-
-/* 取引アイテム（通常・ダッシュボード用） */
-.transaction-item {
-    display: flex; align-items: center; padding: 12px 16px;
+/* リスト表示 (画像1の再現) */
+.list-container { background: var(--card-bg); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+.date-header {
+    background: var(--header-bg); padding: 8px 16px; font-size: 0.9rem; color: var(--text-main);
     border-bottom: 1px solid var(--border);
 }
-.tx-icon { font-size: 1.4rem; margin-right: 15px; }
-.tx-info { flex: 1; }
-.tx-title { font-weight: bold; }
-.tx-sub { font-size: 0.8rem; color: var(--text-sub); }
-.tx-amount { font-weight: bold; }
-.tx-amount.income { color: var(--income); }
-.tx-amount.expense { color: var(--expense); }
-
-/* 取引一覧用（画像1の再現） */
-.date-header {
-    background: #252525; padding: 6px 16px; 
-    font-size: 0.85rem; color: var(--text-sub); border-bottom: 1px solid var(--border);
-}
 .transaction-item.compact {
-    display: flex; justify-content: space-between; padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 16px; border-bottom: 1px solid var(--border);
 }
-.tx-amount-plain { font-size: 1.1rem; }
+.transaction-item.compact:last-child { border-bottom: none; }
+.tx-amount-plain { font-size: 1.1rem; font-weight: 500; }
 
-/* ─── ナビゲーションバー ─── */
+/* ボタンと入力 */
+.btn-primary { background: var(--accent); color: white; border-radius: 8px; padding: 12px; width: 100%; font-weight: bold; }
+.btn-danger { color: var(--expense); border: 1px solid var(--expense); border-radius: 8px; padding: 10px; width: 100%; margin-top: 15px; }
+input, select { background: #2a2a2a; color: white; border: 1px solid var(--border); padding: 10px; border-radius: 6px; width: 100%; }
+
+/* ナビゲーション */
 .bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    height: 65px; background: #222; border-top: 1px solid var(--border);
-    display: flex; justify-content: space-around; align-items: center;
+    position: fixed; bottom: 0; width: 100%; height: 65px;
+    background: #1a1a1a; display: flex; justify-content: space-around; align-items: center;
+    border-top: 1px solid var(--border);
 }
-.nav-item { text-align: center; color: var(--text-sub); font-size: 0.7rem; }
+.nav-item { color: var(--text-sub); font-size: 0.7rem; text-align: center; }
 .nav-item.active { color: var(--accent); }
-.nav-item.main-btn {
-    width: 50px; height: 50px; background: var(--accent); color: white;
-    border-radius: 50%; font-size: 1.8rem; line-height: 50px;
-    transform: translateY(-15px); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+.main-btn {
+    background: var(--accent); width: 50px; height: 50px; border-radius: 50%;
+    color: white; font-size: 1.5rem; transform: translateY(-10px);
 }
 
-/* ─── フォーム & モーダル ─── */
-.input-form { display: flex; flexDirection: column; gap: 15px; }
-.type-tabs { display: flex; gap: 10px; margin-bottom: 10px; }
-.type-tab {
-    flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
-}
-.type-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+/* カテゴリーグリッド */
+.category-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+.cat-chip { display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; gap: 4px; padding: 8px; border-radius: 8px; background: #2a2a2a; }
+.cat-chip.selected { border: 2px solid var(--accent); background: #333; }
 
-.category-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-    max-height: 200px; overflow-y: auto;
-}
-.cat-chip {
-    display: flex; flexDirection: column; align-items: center; gap: 5px; font-size: 0.75rem;
-}
-.cat-chip.selected { color: var(--accent); font-weight: bold; }
-
-.modal {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
-    display: flex; align-items: center; justify-content: center; z-index: 1000;
-}
-.modal-content {
-    background: var(--card-bg); width: 90%; max-width: 400px;
-    padding: 24px; border-radius: 16px;
-}
-
-/* ─── ボタン ─── */
-.btn-primary { background: var(--accent); color: white; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; }
-.btn-secondary { background: var(--border); width: 100%; padding: 12px; border-radius: 8px; margin-top: 8px; }
-.btn-danger { color: var(--expense); width: 100%; padding: 12px; margin-top: 20px; border: 1px solid var(--expense); border-radius: 8px; }
+/* モーダル */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal-content { background: var(--card-bg); padding: 20px; border-radius: 15px; width: 85%; max-width: 400px; }
