@@ -10,7 +10,7 @@ const today = () => new Date().toISOString().split('T')[0];
 const monthKey = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
 const parseMonth = (s) => ({ y: parseInt(s.split('-')[0]), m: parseInt(s.split('-')[1]) });
 
-/* ─── API ラッパー (GitHub Pages対応：LocalStorage版) ─── */
+/* ─── API ラッパー (LocalStorage) ─── */
 const API = {
   _db(table) { return JSON.parse(localStorage.getItem(`kb_v3_${table}`) || '[]'); },
   _save(table, data) { localStorage.setItem(`kb_v3_${table}`, JSON.stringify(data)); },
@@ -52,7 +52,6 @@ const ACCOUNT_TYPE_ICONS = { cash: '💴', bank: '🏦', credit: '💳', 'e-mone
 async function init() {
   await loadAllData();
   
-  // 初期データがない場合の補填
   if (App.categories.length === 0) {
     await API.create('categories', { id: uuid(), name: '食費', type: 'expense', icon: '🍽️', is_active: true });
     await API.create('categories', { id: uuid(), name: '給与', type: 'income', icon: '💰', is_active: true });
@@ -76,59 +75,52 @@ async function loadAllData() {
   App.transactions = tx.sort((a,b) => b.date.localeCompare(a.date));
 }
 
-/* ─── 全てのボタン・イベントの紐付け ─── */
+/* ─── イベント設定 ─── */
 function setupEventListeners() {
-  // 1. 財布チェックボタン（適切な入力画面へ）
-  $('#btn-wallet-check').onclick = () => navigateTo('input'); // 財布チェック専用ページがないため入力画面へ
-  $('#btn-wallet-check-banner').onclick = () => navigateTo('input');
-  
-  // 2. バックアップ（データの書き出し）
+  // ★ 財布チェック：専用ページ (page-wallet-check) へ遷移 ★
+  $('#btn-wallet-check').onclick = () => navigateTo('wallet-check');
+  $('#btn-wallet-check-banner').onclick = () => navigateTo('wallet-check');
+
+  // バックアップ
   $('#btn-backup').onclick = exportData;
 
-  // 3. ダッシュボード内の「管理」「すべて」リンク
+  // ダッシュボード内リンク
   $('#btn-go-accounts').onclick = () => navigateTo('accounts');
   $('#btn-go-transactions').onclick = () => navigateTo('transactions');
 
-  // 4. 入力画面のタブ切り替え（収入/支出/移動）
+  // 取引入力関連
   $$('.type-tab').forEach(btn => {
     btn.onclick = () => {
       const type = btn.dataset.type;
       App.selectedTxType = type;
       $$('.type-tab').forEach(b => b.classList.toggle('active', b === btn));
-      
-      // 表示項目の切り替え
       $('#group-to-account')?.classList.toggle('hidden', type !== 'transfer');
       $('#group-category')?.classList.toggle('hidden', type === 'transfer');
-      $('#group-travel')?.classList.toggle('hidden', type !== 'expense');
-      
       renderCategoryPicker(type);
     };
   });
 
-  // 5. 保存ボタン
   $('#btn-save-transaction').onclick = saveTransaction;
 
-  // 6. 移動トグルの切り替え
   $('#toggle-travel')?.addEventListener('change', (e) => {
     $('#travel-input-area')?.classList.toggle('hidden', !e.target.checked);
   });
 
-  // 7. 各ページの「月」ナビゲーション
-  const monthSelectors = [
-    { prev: '#btn-prev-month', next: '#btn-next-month' },
-    { prev: '#btn-prev-month-tx', next: '#btn-next-month-tx' },
-    { prev: '#btn-prev-month-rp', next: '#btn-next-month-rp' },
-    { prev: '#btn-prev-month-tr', next: '#btn-next-month-tr' }
+  // 月切り替え
+  const monthNavs = [
+    { p: '#btn-prev-month', n: '#btn-next-month' },
+    { p: '#btn-prev-month-tx', n: '#btn-next-month-tx' },
+    { p: '#btn-prev-month-rp', n: '#btn-next-month-rp' },
+    { p: '#btn-prev-month-tr', n: '#btn-next-month-tr' }
   ];
-  monthSelectors.forEach(group => {
-    if ($(group.prev)) $(group.prev).onclick = () => changeMonth(-1);
-    if ($(group.next)) $(group.next).onclick = () => changeMonth(1);
+  monthNavs.forEach(nav => {
+    if ($(nav.p)) $(nav.p).onclick = () => changeMonth(-1);
+    if ($(nav.n)) $(nav.n).onclick = () => changeMonth(1);
   });
 }
 
 /* ─── ナビゲーション ─── */
 function setupNavigation() {
-  // 下部ナビゲーション
   $$('.nav-item').forEach(btn => {
     btn.onclick = () => {
       const page = btn.dataset.page;
@@ -137,30 +129,38 @@ function setupNavigation() {
     };
   });
 
-  // 戻るボタン
   $$('[data-back]').forEach(btn => {
     btn.onclick = () => navigateTo(btn.dataset.back);
   });
 }
 
 function navigateTo(page) {
-  // 全ページを非表示にして対象だけ表示
+  // すべてのセクション (.page) を非表示にし、対象の ID だけを表示する
   $$('.page').forEach(p => p.classList.remove('active'));
+  
+  // page-dashboard, page-transactions, page-wallet-check などを探す
   const target = $(`#page-${page}`);
   if (target) {
     target.classList.add('active');
     App.currentPage = page;
+  } else {
+    console.error(`ページ ID: page-${page} が HTML 内に見つかりません。`);
   }
   
-  // ナビゲーションのアイコン状態を更新
   $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
 
-  // ページごとの表示更新
   if (page === 'dashboard') renderDashboard();
-  if (page === 'transactions') renderTransactionsList();
+  if (page === 'wallet-check') renderWalletCheckPage(); // 専用の描画関数を実行
 }
 
-/* ─── 描画処理 ─── */
+/* ─── 財布チェック画面の描画 (補完) ─── */
+function renderWalletCheckPage() {
+  // ここに、帳簿上の金額と実際の金額を比較するロジックを記述します
+  // 現時点では画面を表示する処理を優先しています
+  console.log("財布チェック画面を表示しました。");
+}
+
+/* ─── 描画処理 (ダッシュボード等) ─── */
 function renderDashboard() {
   const { y, m } = parseMonth(App.currentMonth);
   if ($('#dashboard-month-label')) $('#dashboard-month-label').textContent = `${y}年${m}月`;
@@ -173,7 +173,6 @@ function renderDashboard() {
   if ($('#summary-expense')) $('#summary-expense').textContent = fmt(exp);
   if ($('#summary-balance')) $('#summary-balance').textContent = fmtSigned(inc - exp);
 
-  // 口座一覧の更新
   const list = $('#account-list-dashboard');
   if (list) {
     list.innerHTML = App.accounts.map(acc => `
@@ -202,11 +201,8 @@ function openInputPage(tx) {
   App.editingTxId = tx?.id || null;
   const type = tx?.type || 'expense';
   App.selectedTxType = type;
-  
   $('#input-amount').value = tx?.amount || '';
   $('#input-date').value = tx?.date || today();
-  $('#input-memo').value = tx?.memo || '';
-  
   updateAccountSelects();
   renderCategoryPicker(type);
   navigateTo('input');
@@ -257,28 +253,25 @@ function changeMonth(delta) {
   const { y, m } = parseMonth(App.currentMonth);
   let nm = m + delta, ny = y;
   if (nm > 12) { nm = 1; ny++; } else if (nm < 1) { nm = 12; ny--; }
-  App.currentMonth = monthKey(ny, nm); // 正しい代入
+  App.currentMonth = monthKey(ny, nm);
   
-  // ラベルの更新
-  const label = `${ny}年${nm}月`;
-  ['#dashboard-month-label', '#tx-month-label', '#rp-month-label', '#tr-month-label'].forEach(id => {
-    if ($(id)) $(id).textContent = label;
-  });
+  const labels = ['#dashboard-month-label', '#tx-month-label', '#rp-month-label', '#tr-month-label'];
+  labels.forEach(sel => { if($(sel)) $(sel).textContent = `${ny}年${nm}月`; });
 
   navigateTo(App.currentPage);
 }
 
 function exportData() {
-  const allData = {
+  const data = {
     transactions: API._db('transactions'),
     accounts: API._db('accounts'),
     categories: API._db('categories')
   };
-  const blob = new Blob([JSON.stringify(allData, null, 2)], {type: 'application/json'});
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `kakeibo_backup_${today()}.json`;
+  a.download = `backup_${today()}.json`;
   a.click();
 }
 
