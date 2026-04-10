@@ -10,7 +10,7 @@ const today = () => new Date().toISOString().split('T')[0];
 const monthKey = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
 const parseMonth = (s) => ({ y: parseInt(s.split('-')[0]), m: parseInt(s.split('-')[1]) });
 
-/* ─── API ラッパー (LocalStorage版) ─── */
+/* ─── API ラッパー (LocalStorage) ─── */
 const API = {
   _db(table) { return JSON.parse(localStorage.getItem(`kb_v3_${table}`) || '[]'); },
   _save(table, data) { localStorage.setItem(`kb_v3_${table}`, JSON.stringify(data)); },
@@ -43,7 +43,7 @@ const App = {
   transactions: [],
   selectedTxType: 'expense',
   editingTxId: null,
-  editingAccountId: null, // 口座編集用
+  editingAccountId: null,
 };
 
 const ACCOUNT_TYPE_ICONS = { cash: '💴', bank: '🏦', credit: '💳', 'e-money': '📱', other: '📦' };
@@ -52,17 +52,18 @@ const ACCOUNT_TYPE_ICONS = { cash: '💴', bank: '🏦', credit: '💳', 'e-mone
 async function init() {
   await loadAllData();
   
+  // 初期データの生成
   if (App.categories.length === 0) {
     await API.create('categories', { id: uuid(), name: '食費', type: 'expense', icon: '🍽️', is_active: true });
   }
   if (App.accounts.length === 0) {
     await API.create('accounts', { id: uuid(), name: '財布', account_type: 'cash', initial_balance: 0, is_active: true, is_wallet: true });
   }
+  
   await loadAllData();
-
   setupNavigation();
   setupEventListeners();
-  renderDashboard();
+  renderAll();
 }
 
 async function loadAllData() {
@@ -79,102 +80,118 @@ function setupEventListeners() {
   // 1. 財布チェック
   $('#btn-wallet-check').onclick = () => openWalletCheckModal();
   $('#btn-wallet-check-banner').onclick = () => openWalletCheckModal();
-  $('#btn-confirm-wallet-check').onclick = saveWalletCheck; // HTMLのIDに合わせ修正
+  $('#btn-confirm-wallet-check').onclick = saveWalletCheck;
+  $('#wc-actual-amount').oninput = updateWCDiff;
+  $('#wc-account').onchange = updateWCDiff;
 
-  // 2. 口座の追加ボタン (ユーザーが提示したボタン)
+  // 2. 口座管理
   $('#btn-add-account').onclick = () => openAccountModal();
   $('#btn-save-account').onclick = saveAccount;
-
-  // 3. バックアップ
-  $('#btn-backup').onclick = () => openModal('backup');
-  $('#btn-export-backup').onclick = exportData;
-
-  // 4. ナビゲーション・表示
   $('#btn-go-accounts').onclick = () => navigateTo('accounts');
-  $('#btn-go-transactions').onclick = () => navigateTo('transactions');
 
-  // 5. モーダルを閉じる共通設定
+  // 3. 取引入力
+  $('#btn-save-transaction').onclick = saveTransaction;
+  $('#btn-go-transactions').onclick = () => navigateTo('transactions');
+  $$('.type-tab').forEach(btn => {
+    btn.onclick = () => {
+      App.selectedTxType = btn.dataset.type;
+      $$('.type-tab').forEach(b => b.classList.toggle('active', b === btn));
+      $('#group-to-account')?.classList.toggle('hidden', App.selectedTxType !== 'transfer');
+      renderCategoryPicker();
+    };
+  });
+
+  // 4. 月切り替えナビゲーション（すべてのページに対応）
+  const monthNavGroups = [
+    { p: '#btn-prev-month', n: '#btn-next-month', label: '#dashboard-month-label' },
+    { p: '#btn-prev-month-tx', n: '#btn-next-month-tx', label: '#tx-month-label' },
+    { p: '#btn-prev-month-rp', n: '#btn-next-month-rp', label: '#rp-month-label' },
+    { p: '#btn-prev-month-tr', n: '#btn-next-month-tr', label: '#tr-month-label' }
+  ];
+
+  monthNavGroups.forEach(group => {
+    const prevBtn = $(group.p);
+    const nextBtn = $(group.n);
+    if (prevBtn) prevBtn.onclick = () => changeMonth(-1);
+    if (nextBtn) nextBtn.onclick = () => changeMonth(1);
+  });
+
+  // 5. モーダル共通
   $$('.modal-close').forEach(btn => {
     btn.onclick = () => closeModal(btn.dataset.modal);
   });
 
-  // 6. 取引保存
-  $('#btn-save-transaction').onclick = saveTransaction;
-
-  // 7. 月切り替え
-  const navs = [{p:'#btn-prev-month',n:'#btn-next-month'}, {p:'#btn-prev-month-tx',n:'#btn-next-month-tx'}];
-  navs.forEach(btn => {
-    if($(btn.p)) $(btn.p).onclick = () => changeMonth(-1);
-    if($(btn.n)) $(btn.n).onclick = () => changeMonth(1);
-  });
+  // 6. バックアップ
+  $('#btn-backup').onclick = () => openModal('backup');
+  $('#btn-export-backup').onclick = exportData;
 }
 
-/* ─── 口座管理ロジック ─── */
-function openAccountModal(acc = null) {
-  App.editingAccountId = acc ? acc.id : null;
-  $('#account-modal-title').textContent = acc ? '口座を編集' : '口座を追加';
+/* ─── ページ表示・描画 ─── */
+function navigateTo(page) {
+  $$('.page').forEach(p => p.classList.remove('active'));
+  $(`#page-${page}`).classList.add('active');
+  App.currentPage = page;
   
-  $('#account-name').value = acc ? acc.name : '';
-  $('#account-balance').value = acc ? acc.initial_balance : 0;
-  $('#account-is-wallet').checked = acc ? acc.is_wallet : false;
-  
-  // 口座タイプ選択の初期化
-  const type = acc ? acc.account_type : 'cash';
-  $$('.actype-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.type === type);
-    btn.onclick = () => {
-      $$('.actype-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    };
+  $$('.nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.page === page);
   });
 
-  $('#account-delete-group').classList.toggle('hidden', !acc);
-  openModal('account');
+  renderAll();
 }
 
-async function saveAccount() {
-  const name = $('#account-name').value;
-  if (!name) { alert('口座名を入力してください'); return; }
+function renderAll() {
+  const { y, m } = parseMonth(App.currentMonth);
+  const label = `${y}年${m}月`;
+  
+  // 月ラベルの一斉更新
+  $$('.month-label').forEach(el => el.textContent = label);
 
-  const activeTypeBtn = $('.actype-btn.active');
-  const data = {
-    id: App.editingAccountId || uuid(),
-    name: name,
-    account_type: activeTypeBtn ? activeTypeBtn.dataset.type : 'cash',
-    initial_balance: parseInt($('#account-balance').value) || 0,
-    is_wallet: $('#account-is-wallet').checked,
-    is_active: true
-  };
-
-  if (App.editingAccountId) await API.update('accounts', App.editingAccountId, data);
-  else await API.create('accounts', data);
-
-  await loadAllData();
-  closeModal('account');
+  if (App.currentPage === 'dashboard') renderDashboard();
   if (App.currentPage === 'accounts') renderAccountsList();
-  renderDashboard();
+  if (App.currentPage === 'transactions') renderTransactionsList();
 }
 
-/* ─── 財布チェックロジック ─── */
+function renderDashboard() {
+  const txs = App.transactions.filter(t => t.date.startsWith(App.currentMonth));
+  const inc = txs.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
+  const exp = txs.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
+
+  $('#summary-income').textContent = fmt(inc);
+  $('#summary-expense').textContent = fmt(exp);
+  $('#summary-balance').textContent = fmtSigned(inc - exp);
+
+  $('#account-list-dashboard').innerHTML = App.accounts.map(acc => `
+    <div class="account-item">
+      <div class="account-icon">${ACCOUNT_TYPE_ICONS[acc.account_type]}</div>
+      <div class="account-info"><div>${acc.name}</div></div>
+      <div class="account-balance-text">${fmt(computeAccountBalance(acc))}</div>
+    </div>
+  `).join('');
+}
+
+/* ─── ロジック：口座・財布チェック ─── */
 function openWalletCheckModal() {
   const wallets = App.accounts.filter(a => a.is_wallet);
   if (wallets.length === 0) {
-    alert('財布チェック対象の口座がありません。「口座管理」から口座を作成し、「財布チェック対象」をONにしてください。');
+    alert('財布チェック対象の口座がありません。「口座管理」で口座を作成し、「財布チェック対象」をONにしてください。');
     return;
   }
-  const sel = $('#wc-account');
-  sel.innerHTML = wallets.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+  $('#wc-account').innerHTML = wallets.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
   $('#wc-actual-amount').value = '';
-  openModal('wallet-check');
   updateWCDiff();
+  openModal('wallet-check');
 }
 
 function updateWCDiff() {
-  const accId = $('#wc-account').value;
-  const acc = App.accounts.find(a => a.id === accId);
+  const acc = App.accounts.find(a => a.id === $('#wc-account').value);
   if (!acc) return;
   const sysBal = computeAccountBalance(acc);
   $('#wc-system-amount').textContent = fmt(sysBal);
+  
+  const actual = parseInt($('#wc-actual-amount').value) || 0;
+  const diff = actual - sysBal;
+  $('#wc-diff-value').textContent = fmtSigned(diff);
+  $('#wc-diff-display').classList.toggle('hidden', $('#wc-actual-amount').value === '');
 }
 
 async function saveWalletCheck() {
@@ -189,43 +206,21 @@ async function saveWalletCheck() {
       type: diff > 0 ? 'income' : 'expense',
       amount: Math.abs(diff),
       account_id: accId,
-      category_id: null,
       date: today(),
       memo: '財布チェック調整'
     });
   }
   await loadAllData();
   closeModal('wallet-check');
-  renderDashboard();
-  alert('チェック完了。差額を調整しました。');
+  renderAll();
 }
 
-/* ─── 描画・ナビ ─── */
-function renderAccountsList() {
-  const container = $('#accounts-list');
-  if (!container) return;
-  container.innerHTML = App.accounts.map(acc => `
-    <div class="account-item" onclick='openAccountModal(${JSON.stringify(acc)})'>
-      <div class="account-icon">${ACCOUNT_TYPE_ICONS[acc.account_type]}</div>
-      <div class="account-info">
-        <div class="account-name">${acc.name} ${acc.is_wallet ? ' <i class="fa-solid fa-wallet" style="font-size:10px;color:#aaa"></i>' : ''}</div>
-      </div>
-      <div class="account-balance-text">${fmt(computeAccountBalance(acc))}</div>
-    </div>
-  `).join('');
-}
-
-function renderDashboard() {
-  const list = $('#account-list-dashboard');
-  if (list) {
-    list.innerHTML = App.accounts.map(acc => `
-      <div class="account-item">
-        <div class="account-icon">${ACCOUNT_TYPE_ICONS[acc.account_type]}</div>
-        <div class="account-info"><div>${acc.name}</div></div>
-        <div class="account-balance-text">${fmt(computeAccountBalance(acc))}</div>
-      </div>
-    `).join('');
-  }
+/* ─── 基本機能 ─── */
+function changeMonth(delta) {
+  const { y, m } = parseMonth(App.currentMonth);
+  let d = new Date(y, m - 1 + delta, 1);
+  App.currentMonth = monthKey(d.getFullYear(), d.getMonth() + 1);
+  renderAll();
 }
 
 function computeAccountBalance(acc) {
@@ -240,51 +235,69 @@ function computeAccountBalance(acc) {
   return bal;
 }
 
-function navigateTo(page) {
-  $$('.page').forEach(p => p.classList.remove('active'));
-  $(`#page-${page}`).classList.add('active');
-  App.currentPage = page;
-  if (page === 'accounts') renderAccountsList();
-  if (page === 'dashboard') renderDashboard();
-}
-
 function setupNavigation() {
   $$('.nav-item').forEach(btn => {
-    btn.onclick = () => navigateTo(btn.dataset.page);
+    btn.onclick = () => {
+      if (btn.dataset.page === 'input') {
+        $('#input-date').value = today();
+        updateAccountSelects();
+        openInputPage();
+      } else {
+        navigateTo(btn.dataset.page);
+      }
+    };
   });
-  $$('[data-back]').forEach(btn => {
-    btn.onclick = () => navigateTo(btn.dataset.back);
-  });
-}
-
-async function saveTransaction() {
-  const data = {
-    id: uuid(),
-    type: App.selectedTxType,
-    amount: parseInt($('#input-amount').value) || 0,
-    account_id: $('#input-account').value,
-    date: $('#input-date').value || today(),
-    memo: $('#input-memo').value
-  };
-  await API.create('transactions', data);
-  await loadAllData();
-  navigateTo('dashboard');
+  $$('[data-back]').forEach(btn => btn.onclick = () => navigateTo(btn.dataset.back));
 }
 
 function openModal(name) { $(`#modal-${name}`).classList.remove('hidden'); }
 function closeModal(name) { $(`#modal-${name}`).classList.add('hidden'); }
 
-function changeMonth(delta) {
-  // 月変更ロジック (省略せず実装)
-  navigateTo(App.currentPage);
+function updateAccountSelects() {
+  const h = App.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+  if ($('#input-account')) $('#input-account').innerHTML = h;
+  if ($('#input-to-account')) $('#input-to-account').innerHTML = h;
+}
+
+async function saveTransaction() {
+  const amount = parseInt($('#input-amount').value) || 0;
+  if (!amount) return alert('金額を入力してください');
+  await API.create('transactions', {
+    id: uuid(),
+    type: App.selectedTxType,
+    amount,
+    account_id: $('#input-account').value,
+    to_account_id: App.selectedTxType === 'transfer' ? $('#input-to-account').value : '',
+    date: $('#input-date').value || today(),
+    memo: $('#input-memo').value
+  });
+  await loadAllData();
+  navigateTo('dashboard');
+}
+
+async function saveAccount() {
+  const name = $('#account-name').value;
+  if (!name) return alert('名前を入力してください');
+  const typeBtn = $('.actype-btn.active');
+  await API.create('accounts', {
+    id: uuid(),
+    name,
+    account_type: typeBtn ? typeBtn.dataset.type : 'cash',
+    initial_balance: parseInt($('#account-balance').value) || 0,
+    is_wallet: $('#account-is-wallet').checked,
+    is_active: true
+  });
+  await loadAllData();
+  closeModal('account');
+  renderAll();
 }
 
 function exportData() {
-  const data = { tx: API._db('transactions'), acc: API._db('accounts') };
-  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  const d = { tx: API._db('transactions'), acc: API._db('accounts') };
+  const blob = new Blob([JSON.stringify(d)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'kakeibo_backup.json';
+  a.download = `backup_${today()}.json`;
   a.click();
 }
 
